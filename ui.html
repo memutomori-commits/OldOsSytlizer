@@ -4,7 +4,37 @@
 <meta charset="utf-8">
 <title>Retro Bevel</title>
 <style>
-  :root {
+  /* Плагины библиотеки Figma (isTool) получают в iframe стили PropsKit, которые
+     переопределяют button, span и body. Поэтому панель целиком живёт в Shadow DOM,
+     а снаружи задан только фон документа и блочный хост. */
+  #rb-body { margin: 0; padding: 0; background: #C0C0C0; overflow: hidden; }
+  #rb-app { display: block; width: 100%; margin: 0; padding: 0; }
+</style>
+</head>
+<body id="rb-body">
+<retro-bevel-app id="rb-app"></retro-bevel-app>
+<template id="rb-template">
+<style>
+  :host { display: block; }
+
+  /* all: initial отсекает наследование из документа, дальше всё задаём явно. */
+  .panel {
+    all: initial;
+    display: block;
+    box-sizing: border-box;
+    padding: 8px;
+    background: #C0C0C0;
+    color: #000000;
+    font-family: "MS Sans Serif", "Pixelated MS Sans Serif", Tahoma, "Segoe UI", Arial, sans-serif;
+    font-size: 11px;
+    line-height: 1.2;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+  }
+
+  .panel {
     --face: #C0C0C0;
     --light: #FFFFFF;
     --lighter: #DFDFDF;
@@ -14,22 +44,7 @@
     --text: #000000;
   }
 
-  * { box-sizing: border-box; }
-
-  html, body { height: 100%; margin: 0; }
-
-  body {
-    padding: 8px;
-    background: var(--face);
-    color: var(--text);
-    font-family: "MS Sans Serif", "Pixelated MS Sans Serif", Tahoma, "Segoe UI", Arial, sans-serif;
-    font-size: 11px;
-    line-height: 1.2;
-    cursor: default;
-    user-select: none;
-    -webkit-user-select: none;
-    overflow: hidden;
-  }
+  *, *::before, *::after { box-sizing: border-box; }
 
   /* Бевели Win95 */
   .raised {
@@ -155,8 +170,7 @@
   }
   .btn:disabled { color: var(--shade); text-shadow: 1px 1px 0 var(--light); }
 </style>
-</head>
-<body>
+<div class="panel">
   <div class="tabs" role="tablist">
     <button class="tab is-active" type="button" role="tab" aria-selected="true" tabindex="-1">Win95</button>
   </div>
@@ -168,14 +182,19 @@
          title="Поддерживаются слои с заливкой и эффектами: шейпы, фреймы, компоненты, инстансы. Группы, секции и текст пропускаются.">Выделите шейп</div>
     <button id="reset" class="btn raised" type="button" disabled>Сбросить</button>
   </div>
+</div>
+</template>
 
 <script>
 (function () {
   'use strict';
 
-  const grid = document.getElementById('grid');
-  const statusEl = document.getElementById('status');
-  const resetButton = document.getElementById('reset');
+  const root = document.getElementById('rb-app').attachShadow({ mode: 'open' });
+  root.appendChild(document.getElementById('rb-template').content.cloneNode(true));
+
+  const grid = root.getElementById('grid');
+  const statusEl = root.getElementById('status');
+  const resetButton = root.getElementById('reset');
   let selection = { count: 0, total: 0 };
 
   function post(message) {
