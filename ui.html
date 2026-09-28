@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Retro Bevel</title>
+<style>
+  :root {
+    --face: #C0C0C0;
+    --light: #FFFFFF;
+    --lighter: #DFDFDF;
+    --shade: #808080;
+    --dark: #0A0A0A;
+    --select: #000080;
+    --text: #000000;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; margin: 0; }
+
+  body {
+    padding: 8px;
+    background: var(--face);
+    color: var(--text);
+    font-family: "MS Sans Serif", "Pixelated MS Sans Serif", Tahoma, "Segoe UI", Arial, sans-serif;
+    font-size: 11px;
+    line-height: 1.2;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+  }
+
+  /* Бевели Win95 */
+  .raised {
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--light),
+      inset -2px -2px var(--shade),
+      inset 2px 2px var(--lighter);
+  }
+  .sunken-thin {
+    box-shadow:
+      inset -1px -1px var(--light),
+      inset 1px 1px var(--shade);
+  }
+
+  /* Вкладки */
+  .tabs {
+    display: flex;
+    align-items: flex-end;
+    padding-left: 2px;
+    position: relative;
+    z-index: 1;
+  }
+  .tab {
+    height: 21px;
+    margin: 0;
+    padding: 2px 10px 0;
+    background: var(--face);
+    border: 0;
+    font: inherit;
+    color: inherit;
+    cursor: default;
+    box-shadow:
+      inset -1px 0 var(--dark),
+      inset 1px 1px var(--light),
+      inset -2px 0 var(--shade),
+      inset 2px 2px var(--lighter);
+  }
+  .tab.is-active {
+    height: 25px;          /* выше остальных и перекрывает верхнюю кромку страницы */
+    margin-bottom: -2px;
+    padding-bottom: 2px;
+  }
+
+  .page { padding: 12px 12px 10px; }
+
+  /* Сетка пресетов */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 10px;
+  }
+  .tile {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 4px 2px 2px;
+    background: none;
+    border: 0;
+    font: inherit;
+    color: inherit;
+    text-align: center;
+    cursor: default;
+  }
+  .tile:focus { outline: none; }
+  .tile:focus-visible { outline: 1px dotted var(--text); outline-offset: -1px; }
+  .swatch {
+    display: block;
+    width: 88px;
+    height: 44px;
+    margin: 0 auto;
+  }
+  .caption {
+    display: inline-block;
+    margin-top: 5px;
+    padding: 0 3px;
+    line-height: 14px;
+  }
+  .tile:not(:disabled):hover .caption,
+  .tile:focus-visible .caption {
+    background: var(--select);
+    color: var(--light);
+  }
+  .tile:not(:disabled):active .swatch { transform: translate(1px, 1px); }
+  .tile:disabled .caption { color: var(--shade); text-shadow: 1px 1px 0 var(--light); }
+  .tile:disabled .swatch { opacity: 0.45; }
+
+  /* Низ: статус и кнопка */
+  .footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .status {
+    flex: 1;
+    min-width: 0;
+    height: 21px;
+    padding: 3px 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .btn {
+    min-width: 75px;
+    height: 23px;
+    padding: 0 10px;
+    background: var(--face);
+    border: 0;
+    font: inherit;
+    color: inherit;
+    cursor: default;
+  }
+  .btn:focus { outline: none; }
+  .btn:focus-visible { outline: 1px dotted var(--text); outline-offset: -4px; }
+  .btn:not(:disabled):active {
+    padding: 2px 9px 0 11px;
+    box-shadow:
+      inset -1px -1px var(--light),
+      inset 1px 1px var(--dark),
+      inset -2px -2px var(--lighter),
+      inset 2px 2px var(--shade);
+  }
+  .btn:disabled { color: var(--shade); text-shadow: 1px 1px 0 var(--light); }
+</style>
+</head>
+<body>
+  <div class="tabs" role="tablist">
+    <button class="tab is-active" type="button" role="tab" aria-selected="true" tabindex="-1">Win95</button>
+  </div>
+  <div class="page raised" role="tabpanel">
+    <div id="grid" class="grid" aria-label="Пресеты"></div>
+  </div>
+  <div class="footer">
+    <div id="status" class="status sunken-thin" role="status" aria-live="polite"
+         title="Поддерживаются слои с заливкой и эффектами: шейпы, фреймы, компоненты, инстансы. Группы, секции и текст пропускаются.">Выделите шейп</div>
+    <button id="reset" class="btn raised" type="button" disabled>Сбросить</button>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const grid = document.getElementById('grid');
+  const statusEl = document.getElementById('status');
+  const resetButton = document.getElementById('reset');
+  let selection = { count: 0, total: 0 };
+
+  function post(message) {
+    parent.postMessage({ pluginMessage: message }, '*');
+  }
+
+  function plural(n, one, few, many) {
+    const m10 = n % 10;
+    const m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return one;
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+    return many;
+  }
+
+  // Превью строится из тех же значений, что уходят в Figma: blur 0, spread 0, 100 %.
+  // Первая тень пресета — верхняя, как и в CSS box-shadow.
+  function shadowCss(preset) {
+    const shadows = preset.effects.map(function (e) {
+      return (e.type === 'INNER_SHADOW' ? 'inset ' : '') + e.x + 'px ' + e.y + 'px 0 0 ' + e.color;
+    });
+    // Фигура без заливки отбрасывает в Figma тень от кольца обводки, и линия видна
+    // и снаружи, и внутри контура. CSS режет внешнюю тень по границе — добавляем inset-двойник.
+    if (!preset.fill && preset.stroke) {
+      preset.effects.forEach(function (e) {
+        if (e.type === 'DROP_SHADOW') shadows.push('inset ' + e.x + 'px ' + e.y + 'px 0 0 ' + e.color);
+      });
+    }
+    return shadows.join(', ');
+  }
+
+  function createTile(preset, stylePrefix) {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'tile';
+    tile.dataset.preset = preset.id;
+    tile.title = 'Применить стиль «' + stylePrefix + preset.name + '»';
+
+    const swatch = document.createElement('span');
+    swatch.className = 'swatch';
+    swatch.style.background = preset.fill || 'transparent';
+    swatch.style.boxShadow = shadowCss(preset);
+    // Обводка INSIDE — это border при box-sizing: border-box.
+    if (preset.stroke) swatch.style.border = preset.stroke.weight + 'px solid ' + preset.stroke.color;
+
+    const caption = document.createElement('span');
+    caption.className = 'caption';
+    caption.textContent = preset.name;
+
+    tile.appendChild(swatch);
+    tile.appendChild(caption);
+    tile.addEventListener('click', function () {
+      post({ type: 'apply', presetId: preset.id });
+    });
+    return tile;
+  }
+
+  function render(presets, stylePrefix) {
+    grid.textContent = '';
+    presets.forEach(function (preset) {
+      grid.appendChild(createTile(preset, stylePrefix));
+    });
+    updateState();
+  }
+
+  function updateState() {
+    const hasTargets = selection.count > 0;
+    const tiles = grid.querySelectorAll('.tile');
+    for (let i = 0; i < tiles.length; i++) tiles[i].disabled = !hasTargets;
+    resetButton.disabled = !hasTargets;
+
+    if (hasTargets) {
+      let text = 'Выбрано: ' + selection.count + ' ' + plural(selection.count, 'слой', 'слоя', 'слоёв');
+      if (selection.total > selection.count) text += ' из ' + selection.total;
+      statusEl.textContent = text;
+    } else {
+      statusEl.textContent = 'Выделите шейп';
+    }
+  }
+
+  window.addEventListener('message', function (event) {
+    const msg = event.data && event.data.pluginMessage;
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.type === 'init') {
+      render(msg.presets, msg.stylePrefix);
+    } else if (msg.type === 'selection') {
+      selection = { count: msg.count, total: msg.total };
+      updateState();
+    }
+  });
+
+  resetButton.addEventListener('click', function () {
+    post({ type: 'reset' });
+  });
+
+  post({ type: 'ready' });
+})();
+</script>
+</body>
+</html>
