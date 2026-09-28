@@ -43,3 +43,7 @@ Figma читает как есть.
 | Etched  | нет     | обводка #808080 1 px inside + drop 1,1 #FFFFFF                    |
 
 Чтобы добавить пресет, допишите объект в `PRESETS`: превью UI строит сам, массив приходит в `ui.html` через `postMessage`.
+
+## Установка через Figma MCP
+
+Если у Claude подключён Figma MCP, плагин ставится без Figma Desktop: он попадает в библиотеку аккаунта как generative plugin. Готовый промт лежит в `docs/mcp-install-prompt.md`. Манифест в этом случае генерирует Figma, а `code.js` уходит как `code.ts` с первой строкой `// @ts-nocheck`.
