@@ -2,16 +2,24 @@
 
 Бевели в духе Windows 95 для выделенных шейпов: клик по пресету — и у слоя
 прямые углы, нужная заливка, Effect Style «Win95 / <name>» и целочисленные
-координаты и размеры. Без сборщика: `manifest.json`, `code.js`, `ui.html`
-Figma читает как есть.
+координаты и размеры. Сборщика нет: Figma читает `manifest.json`, `code.js`
+и `ui.html` как есть.
 
-## Установка
+## Установка вручную (Figma Desktop)
 
-1. Откройте Figma Desktop.
-2. **Plugins → Development → Import plugin from manifest…** и выберите `manifest.json`.
-3. Плагин появится в **Plugins → Development → Retro Bevel**.
+1. **Plugins → Development → Import plugin from manifest…** и выберите `manifest.json`.
+2. Плагин появится в **Plugins → Development → Retro Bevel**.
 
 `id` в манифесте — заглушка для локальной разработки; при публикации Figma выдаст свой.
+Команда в `relaunchButtons` равна `id`: так плагин получает кнопку повторного запуска
+в панели свойств, а код не зависит от способа установки.
+
+## Установка через Figma MCP
+
+Если у Claude подключён Figma MCP, плагин ставится без Figma Desktop: он попадает
+в библиотеку аккаунта как generative plugin. Манифест в этом случае генерирует Figma,
+а через MCP передаются `code.ts` и `ui.html` без изменений. Готовый промт лежит
+в `docs/mcp-install-prompt.md`.
 
 ## Использование
 
@@ -33,7 +41,7 @@ Figma читает как есть.
 
 ## Пресеты
 
-Массив `PRESETS` в `code.js`: `{ id, name, fill, effects[], stroke? }`. Тени перечислены как в CSS `box-shadow`: первая сверху; у всех blur 0, spread 0, 100 % непрозрачности. Figma рисует последний эффект массива поверх остальных, поэтому перед записью порядок разворачивается (`toFigmaEffects`).
+Массив `PRESETS` в `code.ts`: `{ id, name, fill, effects[], stroke? }`. Тени перечислены как в CSS `box-shadow`: первая сверху; у всех blur 0, spread 0, 100 % непрозрачности. Figma рисует последний эффект массива поверх остальных, поэтому перед записью порядок разворачивается (`toFigmaEffects`).
 
 | Пресет  | Заливка | Тени (x, y, цвет), сверху вниз                                   |
 |---------|---------|------------------------------------------------------------------|
@@ -44,6 +52,14 @@ Figma читает как есть.
 
 Чтобы добавить пресет, допишите объект в `PRESETS`: превью UI строит сам, массив приходит в `ui.html` через `postMessage`.
 
-## Установка через Figma MCP
+## Разработка
 
-Если у Claude подключён Figma MCP, плагин ставится без Figma Desktop: он попадает в библиотеку аккаунта как generative plugin. Готовый промт лежит в `docs/mcp-install-prompt.md`. Манифест в этом случае генерирует Figma, а `code.js` уходит как `code.ts` с первой строкой `// @ts-nocheck`.
+Исходник логики — `code.ts`: строгий TypeScript с типами `@figma/plugin-typings`,
+проходит `tsc --strict` и ESLint (typescript-eslint с проверкой типов плюс правила
+`@figma/eslint-plugin-figma-plugins`). `code.js` сгенерирован из него и закоммичен,
+чтобы ручная установка работала без `npm`. После правок в `code.ts`:
+
+    npm install
+    npm run build
+
+Это только `tsc` без бандлера. `ui.html` — обычный HTML без зависимостей.

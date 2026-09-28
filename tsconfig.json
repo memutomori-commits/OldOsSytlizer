@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "lib": ["ES2019"],
+    "strict": true,
+    "noEmitOnError": true,
+    "removeComments": false,
+    "newLine": "lf",
+    "typeRoots": ["./node_modules/@types", "./node_modules/@figma"]
+  },
+  "files": ["code.ts"]
+}

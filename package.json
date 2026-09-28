@@ -1,0 +1,13 @@
+{
+  "name": "retro-bevel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Плагин Figma: бевели Win95 для выделенных шейпов",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.139.0",
+    "typescript": "^5.9.3"
+  }
+}
