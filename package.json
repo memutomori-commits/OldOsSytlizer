@@ -2,9 +2,9 @@
   "name": "retro-bevel",
   "version": "1.0.0",
   "private": true,
-  "description": "Плагин Figma: бевели Win95 для выделенных шейпов",
+  "description": "Плагины Figma: бевели Win95 (Retro Bevel) и раскидывание ярлыков Win98 по столу (Desktop Scatter)",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && tsc -p desktop-scatter/tsconfig.json"
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.139.0",
