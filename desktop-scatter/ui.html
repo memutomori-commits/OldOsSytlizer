@@ -66,6 +66,12 @@
   input.field[type=number]::-webkit-inner-spin-button { opacity: 1; }
   textarea.field { width: 100%; height: 44px; resize: none; padding: 3px 4px; line-height: 1.25; font-family: inherit; }
   .grow { flex: 1; }
+  select.field { width: 100%; padding: 1px 2px; }
+  input[type=range] { flex: 1; height: 21px; margin: 0; -webkit-appearance: none; background: transparent; }
+  input[type=range]::-webkit-slider-runnable-track { height: 4px; background: var(--shade); box-shadow: inset 1px 1px var(--dark), 0 1px 0 var(--light); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 21px; margin-top: -9px; background: var(--face);
+    box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--light), inset -2px -2px var(--shade), inset 2px 2px var(--lighter); }
+  .val { width: 28px; text-align: right; }
 
   .btn {
     height: 23px; min-width: 23px; padding: 0 8px; background: var(--face); border: 0; font: inherit; color: inherit; cursor: default;
@@ -94,6 +100,11 @@
     <button class="tab" type="button" role="tab" aria-selected="true" tabindex="-1">Рабочий стол</button>
   </div>
   <div class="page raised" role="tabpanel">
+    <div class="row">
+      <label class="name" for="set">Сет</label>
+      <select id="set" class="field sunken" aria-label="Компонент-сет"></select>
+      <button id="sets-refresh" class="btn raised" type="button" title="Обновить список сетов">↻</button>
+    </div>
     <fieldset class="group">
       <legend>Сид</legend>
       <div class="row" style="margin-bottom:0">
@@ -117,11 +128,12 @@
       <input id="margin" class="field sunken" type="number" min="0" max="400" step="2" value="16">
     </div>
     <div class="row">
-      <span class="name">Раскладка</span>
-      <label class="check"><input type="radio" name="mode" value="grid" checked> сетка</label>
-      <label class="check"><input type="radio" name="mode" value="free"> вразброс</label>
+      <label class="name" for="chaos">Хаос</label>
+      <input id="chaos" type="range" min="0" max="100" step="1" value="60" aria-label="Хаос: 0 — столбцами от угла, 100 — по всему столу">
+      <span id="chaos-val" class="val">60</span>
     </div>
     <div class="row">
+      <label class="check"><input id="align" type="checkbox" checked> по сетке</label>
       <label class="check"><input id="shortcut" type="checkbox" checked> стрелка ярлыка</label>
       <label class="check"><input id="select-one" type="checkbox"> один выделен</label>
       <label class="check"><input id="live" type="checkbox" checked> сразу</label>
@@ -162,11 +174,12 @@
   }
 
   function readParams() {
-    const mode = root.querySelector('input[name=mode]:checked');
     return {
+      setId: $('set').value || '',
       seed: num('seed', 0, 999999, 1),
       count: num('count', 1, 200, 12),
-      mode: mode && mode.value === 'free' ? 'free' : 'grid',
+      chaos: num('chaos', 0, 100, 60),
+      align: $('align').checked,
       scale: num('scale', 10, 400, 50),
       gap: num('gap', 0, 400, 16),
       margin: num('margin', 0, 400, 16),
@@ -182,8 +195,10 @@
     $('scale').value = p.scale;
     $('gap').value = p.gap;
     $('margin').value = p.margin;
-    const radios = root.querySelectorAll('input[name=mode]');
-    for (let i = 0; i < radios.length; i++) radios[i].checked = radios[i].value === p.mode;
+    $('chaos').value = p.chaos;
+    $('chaos-val').textContent = p.chaos;
+    $('align').checked = p.align;
+    if (p.setId && root.querySelector('option[value="' + p.setId + '"]')) $('set').value = p.setId;
     $('shortcut').checked = p.shortcut;
     $('select-one').checked = p.selectOne;
     $('labels').value = p.labels || '';
@@ -218,13 +233,26 @@
   runButton.addEventListener('click', scatter);
 
   // Остальные параметры перерисовывают стол сразу, если включено «сразу».
-  const liveIds = ['count', 'scale', 'gap', 'margin', 'shortcut', 'select-one', 'labels'];
+  const liveIds = ['set', 'count', 'scale', 'gap', 'margin', 'chaos', 'align', 'shortcut', 'select-one', 'labels'];
   liveIds.forEach(function (id) {
     $(id).addEventListener('change', function () { if ($('live').checked) scatter(); });
   });
-  const radios = root.querySelectorAll('input[name=mode]');
-  for (let i = 0; i < radios.length; i++) {
-    radios[i].addEventListener('change', function () { if ($('live').checked) scatter(); });
+  $('chaos').addEventListener('input', function () { $('chaos-val').textContent = $('chaos').value; });
+  $('sets-refresh').addEventListener('click', function () { post({ type: 'sets' }); });
+
+  function renderSets(sets, current) {
+    const select = $('set');
+    const previous = select.value;
+    select.textContent = '';
+    sets.forEach(function (s) {
+      const option = document.createElement('option');
+      option.value = s.id;
+      option.textContent = s.name + ' (' + s.variants + ', ' + s.page + ')';
+      select.appendChild(option);
+    });
+    if (previous && root.querySelector('option[value="' + previous + '"]')) select.value = previous;
+    else if (current) select.value = current;
+    if (sets.length === 0) setStatus('В файле нет компонент-сетов', true);
   }
 
   window.addEventListener('message', function (event) {
@@ -235,6 +263,8 @@
       if (msg.params) writeParams(msg.params);
       if (!busy) setStatus(msg.text, !selectionOk);
       updateState();
+    } else if (msg.type === 'sets') {
+      renderSets(msg.sets || [], msg.current || '');
     } else if (msg.type === 'status') {
       busy = false;
       setStatus(msg.text, !!msg.error);

@@ -1,8 +1,10 @@
 // Desktop Scatter — плагин Figma.
-// Раскидывает инстансы компонент-сета «Desktop Icon» по выделенному прямоугольнику
-// или фрейму, как ярлыки по рабочему столу Win98. Раскладка детерминирована
-// сидом: тот же сид и те же параметры дают тот же результат, поэтому сид можно
-// «крутить» стрелками и сравнивать варианты.
+// Раскидывает инстансы выбранного компонент-сета (по умолчанию «Desktop Icon»)
+// по выделенному прямоугольнику или фрейму, как ярлыки по рабочему столу Win98.
+// Хаос 0 — ярлыки аккуратно стоят столбцами от левого верхнего угла, как их
+// расставляет Windows; хаос 100 — разлетаются по всему столу. Галка «по сетке»
+// привязывает те же позиции к ячейкам. Раскладка детерминирована сидом: тот же
+// сид и те же параметры дают тот же результат, поэтому сид можно «крутить».
 //
 // Исходник — этот файл. code.js рядом сгенерирован из него (`npm run build`
 // в корне репозитория) и нужен для ручной установки через manifest.json.
@@ -11,7 +13,7 @@
 'use strict';
 
 const SET_NAME = 'Desktop Icon';
-const UI_SIZE = { width: 320, height: 548 };
+const UI_SIZE = { width: 320, height: 596 };
 const DATA_TARGET = 'desktopScatter.target';
 const DATA_PARAMS = 'desktopScatter.params';
 const DATA_SET = 'desktopScatter.setId';
@@ -22,9 +24,11 @@ const MAX_TRIES = 48;
 // Параметры
 // ---------------------------------------------------------------------------
 interface Params {
+  setId: string; // id компонент-сета; пусто — «Desktop Icon»
   seed: number;
   count: number;
-  mode: 'grid' | 'free';
+  chaos: number; // 0 — столбцами от угла, 100 — по всему столу
+  align: boolean; // привязать позиции к сетке ячеек
   scale: number; // проценты от размера компонента
   gap: number; // отступ между ярлыками, px
   margin: number; // отступ от края стола, px
@@ -33,7 +37,7 @@ interface Params {
   labels: string; // пул подписей через перенос строки; пусто — подписи компонентов
 }
 
-type UiMessage = { type: 'ready' } | { type: 'scatter'; params: Params };
+type UiMessage = { type: 'ready' } | { type: 'sets' } | { type: 'scatter'; params: Params };
 
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
   const n = typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : fallback;
@@ -43,9 +47,11 @@ function clampInt(value: unknown, min: number, max: number, fallback: number): n
 function normalizeParams(raw: unknown): Params {
   const p = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<Record<keyof Params, unknown>>;
   return {
+    setId: typeof p.setId === 'string' ? p.setId : '',
     seed: clampInt(p.seed, 0, 999999, 1),
     count: clampInt(p.count, 1, MAX_COUNT, 12),
-    mode: p.mode === 'free' ? 'free' : 'grid',
+    chaos: clampInt(p.chaos, 0, 100, 60),
+    align: p.align !== false,
     scale: clampInt(p.scale, 10, 400, 50),
     gap: clampInt(p.gap, 0, 400, 16),
     margin: clampInt(p.margin, 0, 400, 16),
@@ -58,7 +64,7 @@ function normalizeParams(raw: unknown): Params {
 function isUiMessage(value: unknown): value is UiMessage {
   if (typeof value !== 'object' || value === null) return false;
   const message = value as { type?: unknown };
-  return message.type === 'ready' || message.type === 'scatter';
+  return message.type === 'ready' || message.type === 'sets' || message.type === 'scatter';
 }
 
 // ---------------------------------------------------------------------------
@@ -87,30 +93,43 @@ function shuffle<T>(items: T[], rnd: () => number): T[] {
 }
 
 // ---------------------------------------------------------------------------
-// Компонент-сет с ярлыками
+// Компонент-сеты файла: список для выпадашки и выбор по id
 // ---------------------------------------------------------------------------
-function findSetOnPage(page: PageNode): ComponentSetNode | undefined {
-  return page.findAllWithCriteria({ types: ['COMPONENT_SET'] }).find((s) => s.name === SET_NAME);
+interface SetInfo { id: string; name: string; page: string; variants: number }
+
+function describeSet(set: ComponentSetNode, page: PageNode): SetInfo {
+  return { id: set.id, name: set.name, page: page.name, variants: set.children.length };
 }
 
-async function findIconSet(): Promise<ComponentSetNode | null> {
-  const cachedId = figma.root.getPluginData(DATA_SET);
-  if (cachedId !== '') {
-    const cached = await figma.getNodeByIdAsync(cachedId);
-    if (cached !== null && cached.type === 'COMPONENT_SET' && cached.name === SET_NAME) return cached;
+async function listSets(): Promise<SetInfo[]> {
+  const out: SetInfo[] = [];
+  for (const page of figma.root.children) {
+    await page.loadAsync();
+    for (const set of page.findAllWithCriteria({ types: ['COMPONENT_SET'] })) out.push(describeSet(set, page));
   }
-  let found = findSetOnPage(figma.currentPage);
-  if (found === undefined) {
-    for (const page of figma.root.children) {
-      if (page === figma.currentPage) continue;
-      await page.loadAsync();
-      found = findSetOnPage(page);
-      if (found !== undefined) break;
+  // Сет ярлыков — первым, остальные по имени.
+  out.sort((a, b) => (a.name === SET_NAME ? -1 : b.name === SET_NAME ? 1 : a.name.localeCompare(b.name)));
+  return out;
+}
+
+async function findIconSet(setId: string): Promise<ComponentSetNode | null> {
+  const wanted = setId !== '' ? setId : figma.root.getPluginData(DATA_SET);
+  if (wanted !== '') {
+    const node = await figma.getNodeByIdAsync(wanted);
+    if (node !== null && node.type === 'COMPONENT_SET') {
+      figma.root.setPluginData(DATA_SET, node.id);
+      return node;
     }
   }
-  if (found === undefined) return null;
-  figma.root.setPluginData(DATA_SET, found.id);
-  return found;
+  for (const page of figma.root.children) {
+    await page.loadAsync();
+    const found = page.findAllWithCriteria({ types: ['COMPONENT_SET'] }).find((s) => s.name === SET_NAME);
+    if (found !== undefined) {
+      figma.root.setPluginData(DATA_SET, found.id);
+      return found;
+    }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,33 +187,74 @@ function removePrevious(desktop: Desktop): number {
 // ---------------------------------------------------------------------------
 interface Cell { x: number; y: number }
 
-// Сетка как в Windows: столбцами сверху вниз, слева направо; часть ячеек пустует.
-function gridCells(w: number, h: number, cellW: number, cellH: number, p: Params, rnd: () => number): Cell[] {
-  const cols = Math.max(1, Math.floor((w - 2 * p.margin + p.gap) / cellW));
+// Каждый ярлык получает «аккуратную» позицию (столбцами сверху вниз от левого
+// верхнего угла, как в Windows) и случайную точку на всём столе. Хаос смешивает
+// их: 0 — только аккуратная, 100 — только случайная. Так при среднем хаосе
+// ярлыки ещё тянутся к углу, а при полном равномерно покрывают стол.
+function targets(w: number, h: number, cellW: number, cellH: number, p: Params, rnd: () => number): Cell[] {
   const rows = Math.max(1, Math.floor((h - 2 * p.margin + p.gap) / cellH));
-  const all: Cell[] = [];
-  for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) all.push({ x: p.margin + c * cellW, y: p.margin + r * cellH });
-  const count = Math.min(p.count, all.length);
-  const holes = Math.min(all.length - count, Math.round(count * (0.2 + 0.4 * rnd())));
-  const window = all.slice(0, count + holes);
-  return shuffle(window, rnd).slice(0, count).sort((a, b) => a.x - b.x || a.y - b.y);
+  const maxX = Math.max(p.margin, w - p.margin - cellW + p.gap);
+  const maxY = Math.max(p.margin, h - p.margin - cellH + p.gap);
+  const k = p.chaos / 100;
+  const out: Cell[] = [];
+  for (let i = 0; i < p.count; i++) {
+    const tidy = { x: p.margin + Math.floor(i / rows) * cellW, y: p.margin + (i % rows) * cellH };
+    const wild = { x: p.margin + rnd() * (maxX - p.margin), y: p.margin + rnd() * (maxY - p.margin) };
+    out.push({ x: tidy.x + (wild.x - tidy.x) * k, y: tidy.y + (wild.y - tidy.y) * k });
+  }
+  return out;
 }
 
-// Свободный разброс: случайные точки, пересечения отбрасываются, пока есть попытки.
-function freeCells(w: number, h: number, cellW: number, cellH: number, p: Params, rnd: () => number): Cell[] {
-  const maxX = w - p.margin - cellW + p.gap;
-  const maxY = h - p.margin - cellH + p.gap;
-  if (maxX < p.margin || maxY < p.margin) return [];
+function overlaps(a: Cell, b: Cell, cellW: number, cellH: number, gap: number): boolean {
+  return Math.abs(a.x - b.x) < cellW - gap && Math.abs(a.y - b.y) < cellH - gap;
+}
+
+// По сетке: цель округляется до ближайшей ячейки, занятые ячейки обходятся по
+// кольцам вокруг неё. Свободно: вокруг цели ищется место без пересечений, радиус
+// поиска растёт с каждой попыткой; если места нет — ярлык пропускается.
+function place(goals: Cell[], w: number, h: number, cellW: number, cellH: number, p: Params, rnd: () => number): Cell[] {
+  const cols = Math.max(1, Math.floor((w - 2 * p.margin + p.gap) / cellW));
+  const rows = Math.max(1, Math.floor((h - 2 * p.margin + p.gap) / cellH));
   const placed: Cell[] = [];
-  for (let i = 0; i < p.count; i++) {
-    let best: Cell | null = null;
-    for (let t = 0; t < MAX_TRIES; t++) {
-      const c = { x: p.margin + rnd() * (maxX - p.margin), y: p.margin + rnd() * (maxY - p.margin) };
-      const overlaps = placed.some((o) => Math.abs(o.x - c.x) < cellW - p.gap && Math.abs(o.y - c.y) < cellH - p.gap);
-      if (!overlaps) { best = c; break; }
+  if (p.align) {
+    const used = new Set<string>();
+    for (const g of goals) {
+      const c0 = Math.max(0, Math.min(cols - 1, Math.round((g.x - p.margin) / cellW)));
+      const r0 = Math.max(0, Math.min(rows - 1, Math.round((g.y - p.margin) / cellH)));
+      let found: Cell | null = null;
+      for (let ring = 0; ring <= Math.max(cols, rows) && found === null; ring++) {
+        for (let dc = -ring; dc <= ring && found === null; dc++) {
+          for (let dr = -ring; dr <= ring; dr++) {
+            if (Math.max(Math.abs(dc), Math.abs(dr)) !== ring) continue;
+            const c = c0 + dc;
+            const r = r0 + dr;
+            if (c < 0 || r < 0 || c >= cols || r >= rows || used.has(c + ':' + r)) continue;
+            used.add(c + ':' + r);
+            found = { x: p.margin + c * cellW, y: p.margin + r * cellH };
+            break;
+          }
+        }
+      }
+      if (found === null) break; // сетка заполнена
+      placed.push(found);
     }
-    if (best === null) break; // места нет — дальше не пробуем
-    placed.push({ x: Math.round(best.x), y: Math.round(best.y) });
+    return placed;
+  }
+  const maxX = Math.max(p.margin, w - p.margin - cellW + p.gap);
+  const maxY = Math.max(p.margin, h - p.margin - cellH + p.gap);
+  for (const g of goals) {
+    let found: Cell | null = null;
+    for (let t = 0; t < MAX_TRIES && found === null; t++) {
+      const radius = t * (cellW + cellH) / 8;
+      const angle = rnd() * Math.PI * 2;
+      const c = {
+        x: Math.max(p.margin, Math.min(maxX, g.x + Math.cos(angle) * radius * rnd())),
+        y: Math.max(p.margin, Math.min(maxY, g.y + Math.sin(angle) * radius * rnd())),
+      };
+      if (!placed.some((o) => overlaps(o, c, cellW, cellH, p.gap))) found = c;
+    }
+    if (found === null) continue;
+    placed.push({ x: Math.round(found.x), y: Math.round(found.y) });
   }
   return placed;
 }
@@ -223,8 +283,8 @@ async function setLabel(inst: InstanceNode, label: string): Promise<boolean> {
 async function scatter(params: Params): Promise<string> {
   const desktop = await resolveDesktop();
   if (typeof desktop === 'string') throw new Error(desktop);
-  const set = await findIconSet();
-  if (set === null) throw new Error('Не найден компонент-сет «' + SET_NAME + '»');
+  const set = await findIconSet(params.setId);
+  if (set === null) throw new Error('Не найден компонент-сет «' + SET_NAME + '» — выберите сет в списке');
   const variants = set.children.filter((c): c is ComponentNode => c.type === 'COMPONENT');
   if (variants.length === 0) throw new Error('В сете нет вариантов');
 
@@ -234,8 +294,9 @@ async function scatter(params: Params): Promise<string> {
   const h = desktop.node.height;
   const cellW = Math.max(...variants.map((v) => v.width)) * scale + params.gap;
   const cellH = Math.max(...variants.map((v) => v.height)) * scale + params.gap;
-  const cells = params.mode === 'grid' ? gridCells(w, h, cellW, cellH, params, rnd) : freeCells(w, h, cellW, cellH, params, rnd);
+  const cells = place(targets(w, h, cellW, cellH, params, rnd), w, h, cellW, cellH, params, rnd);
   if (cells.length === 0) throw new Error('Стол слишком мал для такого масштаба');
+  params.setId = set.id;
 
   const index = removePrevious(desktop);
   const result = figma.createFrame();
@@ -282,7 +343,7 @@ async function scatter(params: Params): Promise<string> {
 
   figma.currentPage.selection = [result];
   figma.commitUndo();
-  let text = 'Сид ' + String(params.seed) + ': ' + String(cells.length) + ' ярлык' + plural(cells.length, '', 'а', 'ов');
+  let text = 'Сид ' + String(params.seed) + ', ' + set.name + ': ' + String(cells.length) + ' ярлык' + plural(cells.length, '', 'а', 'ов');
   if (cells.length < params.count) text += ' (уместилось меньше)';
   if (labelFailures > 0) text += '; подписи не заменены — шрифт недоступен';
   return text;
@@ -323,6 +384,13 @@ function sendSelection(): void {
   figma.ui.postMessage({ type: 'selection', ok: info.ok, text: info.text, params });
 }
 
+async function sendSets(): Promise<void> {
+  const sets = await listSets();
+  const remembered = figma.root.getPluginData(DATA_SET);
+  const preferred = sets.find((s) => s.id === remembered) ?? sets.find((s) => s.name === SET_NAME) ?? sets[0];
+  figma.ui.postMessage({ type: 'sets', sets, current: preferred !== undefined ? preferred.id : '' });
+}
+
 function registerRelaunchButton(): void {
   const command = figma.pluginId;
   if (command === undefined) return;
@@ -340,6 +408,10 @@ async function handleUiMessage(message: UiMessage): Promise<void> {
   switch (message.type) {
     case 'ready':
       sendSelection();
+      await sendSets();
+      break;
+    case 'sets':
+      await sendSets();
       break;
     case 'scatter':
       try {
