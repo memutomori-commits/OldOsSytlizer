@@ -81,17 +81,6 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-function shuffle<T>(items: T[], rnd: () => number): T[] {
-  const a = items.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1));
-    const tmp = a[i];
-    a[i] = a[j];
-    a[j] = tmp;
-  }
-  return a;
-}
-
 // ---------------------------------------------------------------------------
 // Компонент-сеты файла: список для выпадашки и выбор по id
 // ---------------------------------------------------------------------------

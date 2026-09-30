@@ -56,16 +56,6 @@ function mulberry32(seed) {
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
 }
-function shuffle(items, rnd) {
-    const a = items.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(rnd() * (i + 1));
-        const tmp = a[i];
-        a[i] = a[j];
-        a[j] = tmp;
-    }
-    return a;
-}
 function describeSet(set, page) {
     return { id: set.id, name: set.name, page: page.name, variants: set.children.length };
 }
