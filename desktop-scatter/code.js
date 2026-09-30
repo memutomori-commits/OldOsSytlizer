@@ -56,6 +56,32 @@ function mulberry32(seed) {
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
 }
+function shuffle(items, rnd) {
+    const a = items.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(rnd() * (i + 1));
+        const tmp = a[i];
+        a[i] = a[j];
+        a[j] = tmp;
+    }
+    return a;
+}
+// Варианты идут по кругу в перемешанном порядке: пока ярлыков не больше, чем
+// вариантов, ни один не повторяется; дальше каждый круг перемешивается заново,
+// и повторы распределяются ровно, а не как выпадет.
+function variantOrder(variants, count, rnd) {
+    const out = [];
+    while (out.length < count) {
+        let round = shuffle(variants, rnd);
+        // Стык кругов: не ставить тот же вариант дважды подряд, если есть выбор.
+        if (out.length > 0 && variants.length > 1 && round[0] === out[out.length - 1])
+            round = round.slice(1).concat(round[0]);
+        for (const v of round)
+            if (out.length < count)
+                out.push(v);
+    }
+    return out;
+}
 function describeSet(set, page) {
     return { id: set.id, name: set.name, page: page.name, variants: set.children.length };
 }
@@ -277,9 +303,10 @@ async function scatter(params) {
     const selectedKey = propertyKey(set, 'Selected');
     const labels = params.labels.split('\n').map((s) => s.trim()).filter((s) => s.length > 0);
     const selectedIndex = params.selectOne ? Math.floor(rnd() * cells.length) : -1;
+    const order = variantOrder(variants, cells.length, rnd);
     let labelFailures = 0;
     for (let i = 0; i < cells.length; i++) {
-        const variant = variants[Math.floor(rnd() * variants.length)];
+        const variant = order[i];
         const inst = variant.createInstance();
         result.appendChild(inst);
         if (scale !== 1)
