@@ -1,0 +1,57 @@
+# Clubs Scan — шаблоны по сетям (EVM, SOL)
+
+Файл Figma `clubs_main`, страница **CLUBS / TEST**. Исходные два фрейма (ETH-кошелёк и
+TRON-транзакция) — это шаблон; из них клонами собраны ещё четыре фрейма, по два на сеть.
+Все фреймы 2079×1740, стоят в ряд с шагом 2111 px по X на y = −3799.
+
+| № | Фрейм (имя слоя) | node id | x | Сид Desktop Scatter |
+|---|------------------|---------|---|---------------------|
+| 01 | Wallet_Test (brick) / 01 Clubs Scan — Wallet Overview (ETH, исходник) | `490:1758` | 18904 | 420 |
+| 02 | Transaction_Test (brick) / 02 Clubs Scan — Transaction Detail (TRON, исходник) | `498:1957` | 21015 | 420 |
+| 03 | Wallet_Test (brick) / 03 Clubs Scan — Wallet Overview · EVM | `547:4485` | 23126 | 421 |
+| 04 | Transaction_Test (brick) / 04 Clubs Scan — Transaction Detail · EVM | `548:4684` | 25237 | 422 |
+| 05 | Wallet_Test (brick) / 05 Clubs Scan — Wallet Overview · SOL | `549:4902` | 27348 | 423 |
+| 06 | Transaction_Test (brick) / 06 Clubs Scan — Transaction Detail · SOL | `550:5101` | 29459 | 424 |
+
+## Что откуда
+
+- **Retro Bevel** — бевели Win95 на окнах, полях, тегах и кнопках. Клон сохраняет эффекты
+  исходника (inner shadows из пресетов Raised / Sunken), поэтому новые фреймы ничем не
+  отличаются от шаблона; если править форму слоя, пресет накладывается плагином заново.
+- **Desktop Scatter** — ярлыки на рабочем столе. В каждом клоне старый результат удалён и
+  собран заново по алгоритму плагина (mulberry32 + раскладка столбцами) с параметрами
+  шаблона: 7 ярлыков, масштаб 60 %, зазор 24, поля 40, хаос 0, по сетке, стрелка ярлыка.
+  Сид у каждого фрейма свой (таблица выше), поэтому порядок ярлыков разный. Тот же результат
+  получится, если выделить прямоугольник `Desktop` во фрейме и запустить плагин с этим сидом;
+  плагин тогда положит свой слой рядом, старый `Desktop scatter · seed N` нужно удалить руками
+  (у собранного скриптом слоя нет служебных plugin data).
+- **Dither** (шейдер-эффект) — прямоугольник `Post_Shader — Dither` поверх всего фрейма, как в
+  шаблоне скрыт (Bayer 4×4, cell 1, levels 6, strength 1). Включается видимостью слоя.
+- Монета SOL во фрейме 06 — клон `sol` из `Crypto icons — top 10 / Windows 98` (`161:98`),
+  увеличена до 87 px; у USDT (EVM) оставлена монета шаблона.
+
+## Что меняется по сети
+
+| Элемент | EVM (Ethereum mainnet) | SOL (Solana mainnet-beta) |
+|---------|------------------------|---------------------------|
+| Адреса | `0x…` 42 символа, шрифт в полях 26 px | base58 44 символа, шрифт 25 px |
+| Хеш транзакции | `0x…` 66 символов, 27 px | подпись 88 символов, 20.5 px, подпись «SIGNATURE» |
+| Номер блока | `block 25981037` | `slot 440215633` |
+| Статусы | SUCCESSFUL · CONFIRMED · 200+ BLOCKS | SUCCESSFUL · FINALIZED · 32+ CONFIRMATIONS |
+| Контракт | `CONTRACT · USDT ERC-20` + адрес контракта Tether | `PROGRAM · SYSTEM TRANSFER` + `1111…1111` |
+| Отправитель | FROM | SIGNER |
+| Таблица кошелька | Txn hash · Method · Block · Age · To · Amount · Txn fee | Signature · Type · Slot · Age · To / Program · Amount · Fee (SOL) |
+| Чекбоксы сети | ERC-20 · MAINNET · 200+ BLOCKS · GAS 65,012 | SYSTEM PROGRAM · MAINNET-BETA · 32+ SLOTS · 450 CU |
+| Статус-бар | `EVM wallet · Ethereum mainnet (chain id 1) · etherscan.io` | `SOL wallet · Solana mainnet-beta · solscan.io` |
+
+Сюжет у всех четырёх один — address poisoning: кошелёк-жертва, bait-перевод с адреса-двойника
+за минуту до основного и сам перевод на двойника (тег `BAIT ADDRESS`). Входящие строки в
+таблице помечены зелёным тегом `IN` (#007A3D), исходящие — красным `OUT` из шаблона.
+Колонка Amount расширена со 110 до 160 px, чтобы влезали суммы вида `499,000 USDT`.
+
+## Ограничения
+
+Шрифты PP Mondwest и PP NeueBit в сборке Figma MCP недоступны, поэтому тексты на них
+(`CLUBS SCAN`, `[WALLET OVERVIEW]`, `[TRANSACTION DETAIL]`, `FROM (Sender)`, `TO (Receiver)`)
+не редактировались и остались как в шаблоне. Адреса, хеши и подписи в новых фреймах —
+выдуманные, кроме публичных контрактов (USDT ERC-20, System Program Solana).
