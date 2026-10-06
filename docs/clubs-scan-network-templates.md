@@ -12,6 +12,7 @@ TRON-транзакция) — это шаблон; из них клонами �
 | 04 | Transaction_Test (brick) / 04 Clubs Scan — Transaction Detail · EVM | `548:4684` | 25237 | 422 |
 | 05 | Wallet_Test (brick) / 05 Clubs Scan — Wallet Overview · SOL | `549:4902` | 27348 | 423 |
 | 06 | Transaction_Test (brick) / 06 Clubs Scan — Transaction Detail · SOL | `550:5101` | 29459 | 424 |
+| 07 | Transaction_Test (brick) / 07 Clubs Scan — Transaction Detail · EVM · Polygon swap | `565:5319` | 31570 | 425 |
 
 ## Что откуда
 
@@ -27,6 +28,10 @@ TRON-транзакция) — это шаблон; из них клонами �
   (у собранного скриптом слоя нет служебных plugin data).
 - **Dither** (шейдер-эффект) — прямоугольник `Post_Shader — Dither` поверх всего фрейма, как в
   шаблоне скрыт (Bayer 4×4, cell 1, levels 6, strength 1). Включается видимостью слоя.
+- Фрейм 07 — клон 04, заполненный по скриншоту Polygonscan: хеш `0x915ecc…8445b`, блок
+  94869210, 80 691 подтверждение, 2026-10-03 06:29:15 UTC, from/to из скриншота, контракт
+  DAI (PoS), 39 ERC-20 переводов; вместо hex-дампа — список из шести свопов DAI/MALT на
+  QuickSwap. Монета DAI собрана из бевел-подложки ETH-иконки Win98 и глифа DAI из top 100.
 - Монета SOL во фрейме 06 — клон `sol` из `Crypto icons — top 10 / Windows 98` (`161:98`),
   увеличена до 87 px; у USDT (EVM) оставлена монета шаблона.
 
