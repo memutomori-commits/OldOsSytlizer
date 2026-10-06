@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body { margin: 0; padding: 0; height: auto; min-height: 0; }
+    body { display: block; }
+    #plugin-root { height: auto; }
+    body > #plugin-root > fig-footer {
+      background-color: var(--figma-color-bg);
+      box-shadow: inset 0 1px 0 0 var(--figma-color-border);
+      border-radius: 0 0 var(--radius-large) var(--radius-large);
+    }
+    #status { display: block; padding: 0 var(--spacer-2, 8px) var(--spacer-2, 8px); color: var(--figma-color-text-secondary); font-family: var(--font-family); font-size: 11px; line-height: 16px; white-space: normal; }
+    .row { display: flex; gap: var(--spacer-1, 4px); }
+    .row fig-button { flex: 1; }
+  </style>
+</head>
+<body>
+  <div id="plugin-root">
+    <fig-content>
+      <fig-field>
+        <label>Где</label>
+        <fig-options id="scope" options="Страница, Выделение" value="Страница"></fig-options>
+      </fig-field>
+      <label id="status">Считаю шейдеры…</label>
+    </fig-content>
+    <fig-footer sticky>
+      <div class="row">
+        <fig-button id="off" type="button">Выкл</fig-button>
+        <fig-button id="on" type="button">Вкл</fig-button>
+      </div>
+      <fig-button id="toggle" type="submit">Переключить шейдеры</fig-button>
+    </fig-footer>
+  </div>
+
+  <script>
+    function post(message) { parent.postMessage({ pluginMessage: message }, '*'); }
+
+    let lastReportedHeight = 0, resizeRaf = 0;
+    function reportHeight() {
+      const root = document.getElementById('plugin-root');
+      if (!root) return;
+      const height = Math.ceil(root.getBoundingClientRect().height);
+      if (height && height !== lastReportedHeight) { lastReportedHeight = height; post({ type: 'resize', height: height }); }
+    }
+    const pluginRoot = document.getElementById('plugin-root');
+    if (pluginRoot && typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(function () { if (resizeRaf) cancelAnimationFrame(resizeRaf); resizeRaf = requestAnimationFrame(reportHeight); }).observe(pluginRoot);
+    }
+
+    function scope() {
+      const v = String(document.getElementById('scope').value || '');
+      return v.indexOf('Выдел') === 0 ? 'selection' : 'page';
+    }
+
+    const statusEl = document.getElementById('status');
+    const toggleBtn = document.getElementById('toggle');
+    const onBtn = document.getElementById('on');
+    const offBtn = document.getElementById('off');
+
+    document.getElementById('scope').addEventListener('change', function () { post({ type: 'count', scope: scope() }); });
+    toggleBtn.addEventListener('click', function () { post({ type: 'toggle', scope: scope(), force: 'auto' }); });
+    onBtn.addEventListener('click', function () { post({ type: 'toggle', scope: scope(), force: 'on' }); });
+    offBtn.addEventListener('click', function () { post({ type: 'toggle', scope: scope(), force: 'off' }); });
+
+    window.addEventListener('message', function (event) {
+      const msg = event.data && event.data.pluginMessage;
+      if (!msg || msg.type !== 'state') return;
+      const s = msg.state;
+      const where = msg.scope === 'selection' ? 'В выделении (' + s.selection + ' сл.)' : 'На странице';
+      let text = where + ': шейдеров ' + s.total + ', включено ' + s.on;
+      if (s.styled > 0) text += '; ' + s.styled + ' в Effect Style — не трогаю';
+      if (msg.note) text += '. ' + msg.note;
+      statusEl.textContent = text;
+      const none = s.total === 0;
+      toggleBtn.textContent = none ? 'Шейдеров нет' : (s.on > 0 ? 'Выключить шейдеры (' + s.on + ')' : 'Включить шейдеры (' + s.total + ')');
+      toggleBtn.disabled = none; onBtn.disabled = none; offBtn.disabled = none;
+    });
+
+    post({ type: 'count', scope: scope() });
+  </script>
+</body>
+</html>
