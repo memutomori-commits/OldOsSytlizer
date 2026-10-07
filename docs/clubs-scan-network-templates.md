@@ -103,7 +103,8 @@ Ethereum (01, 03, 04): как у Solana, градиент #4F67E8 → #9FB0F7 т
 остальное сплошное.
 
 TRON (10, 11): пара собрана заново клонами 03 и 04 из данных удалённого фрейма 02 (хеш 0ffeb0ee…,
-USDT TRC-20, OWNER TBUhr4R4…, bait TSdu6x…). Цвета взяты с «Transaction Detail — Desktop Cascade»:
+USDT TRC-20, OWNER TBUhr4R4…, bait `TBUhr4noFdu92eDkSeGsC69GCCyXygTvpQ` — двойник жертвы по началу и концу,
+до ревью стоял невалидный `TSdu6x…`). Цвета взяты с «Transaction Detail — Desktop Cascade»:
 тайтл-бары сплошные #A91013 без градиента, рабочий стол — вертикальный градиент #A91013 → #6E0002
 вместо синего.
 
@@ -118,6 +119,41 @@ USDT TRC-20, OWNER TBUhr4R4…, bait TSdu6x…). Цвета взяты с «Tran
 плейсхолдер иконки и часы `12:00`. Эталон — бары на странице CLUBS / MAIN (287:334587). Кнопка Start
 клонируется из бара 04 ETH (548:4906), иконки € и # — из Carousel Post / Explorer — 01 (526:7393);
 шрифт PP Mondwest недоступен для редактирования, поэтому подпись `CLUBS` всегда переносится клоном.
+
+## Правки после ревью (2026-10-07)
+
+Видимое в постах:
+- Carousel Post / Explorer 01–04: заголовок окна `@clubs - Clubs Explorer` вместо `one:imagepost`,
+  в Notepad `destiny can be changed only in the present / -CLUBS` (как в Help Topics) вместо
+  `u can write anything here / -brickagency`.
+- Video Post: заголовок `clubs.wmv` вместо `title-name`. Бокс заголовка фиксированный (≈225 px),
+  длинное имя переносится — менять на короткое или расширять рамку `Title — follows bar height`.
+- 05 SOL: таскбар стоял со сдвигом (x 19, y 1709) и обрезался — возвращён на x 0, y 1678.
+- 06 SOL и 07 DAI: `Post_Shader — Dither` выключен, как на остальных сканах.
+- Desktop Cascade: в треке прогресса 26 сегментов вместо 21 — бар полный, как подпись 100 %.
+- Wallet Overview 01, 03, 05, 08, 10: окно 1800 px на x 225 (было 1856 на x 131), не перекрывает
+  ярлыки. Чтобы строки `(lookalike)` влезли, подписи `(bait, zero-value)` / `(bait, dust)` /
+  `(bait, 546 sat)` сокращены до `(bait)` — сумма видна в колонке Amount.
+
+Данные:
+- Заголовки таблиц `LATEST 7 OF 18/24` (совпадает с `showing 7 of …`), колонка `From / To`
+  (у SOL `From / To / Program`) — в строках IN там отправитель.
+- 01: тайтл `Wallet Overview (EVM)`, статус-бар `EVM wallet · Ethereum mainnet (chain id 1)` — как у 03.
+- 03/04: nonce кошелька 14, nonce транзакции 13 (было 142 при 24 транзакциях); token holdings
+  `$999.84 (1 token)` — после ухода 499 000 из 500 000 USDT; блок bait-перевода 25981032
+  (5 блоков ≈ 1 минута до 25981037, было 25980998).
+- 05/06 SOL: $498,917.25 (= 2 925 × $170.57), комиссия 0.000105 SOL (0.000005 + priority 0.0001)
+  в инфо и в таблице.
+- 09 BTC: `bait … one block earlier` (bait в блоке 965811, перевод в 965812).
+- TRX: `64,285 Energy` с запятой в 11 и в Cascade.
+- Хеши больше не повторяются между сетями: BTC TXID `9455610a…0e5883` и короткие txid кошелька 08
+  новые (строка Binance `0f1d0940c6e5` — она же prevout в hex-дампе 09); короткие хеши TRX 10 (кроме
+  `0ffeb0ee2948`) новые. Время: ETH 12:14:47, SOL 15:41:09, BTC 09:27:52, TRX 18:06:21 (все 2026-09-13).
+
+Не тронуто, нужно решение: Dossier (адрес `gr-katerini-crypto-17_` vs содержимое, дата обвинения
+набрана PP NeueBit, вымышленные контакты для пострадавших), подпись и счётчик Carousel Cover,
+размер Explorer 1365.11×1367.21 и выбор между Explorer / Help Topics, теги DAI, контраст
+`[WALLET OVERVIEW]` (PP NeueBit), черновики секции 11 на MAIN 2.
 
 ## Шейдер Palette Swatches (эффект)
 
