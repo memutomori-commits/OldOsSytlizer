@@ -212,9 +212,11 @@ class Telegram:
                              supports_streaming=True)
 
 
-    def send_rich(self, chat_id: Any, blocks: List[Dict[str, Any]], files: Dict[str, Tuple[str, bytes]]) -> Dict[str, Any]:
-        """sendRichMessage: блоки slideshow / photo / video / heading / paragraph / footer (Bot API 10.1+)."""
-        return self.call("sendRichMessage", files=files, chat_id=chat_id, rich_message={"blocks": blocks})
+    def send_rich(self, chat_id: Any, html_body: str, media: List[Dict[str, Any]],
+                  files: Dict[str, Tuple[str, bytes]]) -> Dict[str, Any]:
+        """sendRichMessage в HTML-режиме: <tg-slideshow>/<img>/<video> + <p>/<blockquote>/<footer> (Bot API 10.1+)."""
+        return self.call("sendRichMessage", files=files, chat_id=chat_id,
+                         rich_message={"html": html_body, "media": media})
 
 
 def build_media_group(photos: List[Path], caption: Optional[str]) -> Tuple[List[Dict[str, Any]], Dict[str, Tuple[str, bytes]]]:
@@ -291,25 +293,25 @@ def missing_assets(post: Dict[str, Any], assets_dir: Path) -> List[Path]:
 
 
 def build_caption(post: Dict[str, Any], manifest: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
-    """Возвращает (подпись к медиа, текст отдельного сообщения).
+    """Возвращает (подпись к медиа, текст отдельного сообщения) для классической отправки.
 
-    Если полный текст с подвалом помещается в CAPTION_LIMIT — он идёт подписью, второго
-    сообщения нет. Иначе подписью становится только заголовок (первая строка), а полный
-    текст уходит отдельным сообщением-ответом на медиа."""
-    raw = post.get("caption", "") or ""
-    text = html.escape(raw, quote=False)
-    footer = manifest.get("footer_html", "") if post.get("append_footer", True) else ""
+    Подпись берётся из caption_html (исходная вёрстка канала: жирный, цитаты, ссылки) или из caption.
+    Если полный текст с подвалом помещается в CAPTION_LIMIT видимых символов — он идёт подписью.
+    Иначе подписью становится только заголовок (первая строка), а полный текст уходит отдельным
+    сообщением-ответом на медиа (в режиме rich_mode=auto такой пост вместо этого уходит rich message)."""
+    text = caption_html_of(post)
+    footer = manifest.get("footer_html", "").strip() if post.get("append_footer", True) else ""
     full = text + ("\n\n" + footer if footer else "")
     if post.get("type") == "video" and post.get("video", {}).get("duration"):
         full += f"\n🎬 {post['video']['duration']}"
-    if len(full) <= CAPTION_LIMIT:
+    if visible_len(full) <= CAPTION_LIMIT:
         return full, None
-    headline = text.split("\n", 1)[0].strip()
-    short = f"<b>{headline}</b>" if headline else None
-    if short and len(short) > CAPTION_LIMIT:
-        short = short[: CAPTION_LIMIT - 5] + "…</b>"
-    if len(full) > TEXT_LIMIT:
-        full = full[: TEXT_LIMIT - 1] + "…"
+    headline = plain_text(text.split("\n", 1)[0]).strip()
+    short = f"<b>{html.escape(headline, quote=False)}</b>" if headline else None
+    if short and visible_len(short) > CAPTION_LIMIT:
+        short = "<b>" + html.escape(headline[: CAPTION_LIMIT - 8], quote=False) + "…</b>"
+    if visible_len(full) > TEXT_LIMIT:
+        full = html.escape(plain_text(full)[: TEXT_LIMIT - 1], quote=False) + "…"
     return short, full
 
 
@@ -343,82 +345,93 @@ def ensure_video_file(post: Dict[str, Any], assets_dir: Path) -> Optional[Path]:
 
 
 # ---------------------------------------------------------------------------
-# Rich Messages (Bot API 10.1+): листаемая галерея + текст одним сообщением
+# Rich Messages (Bot API 10.1+): листаемая галерея + текст одним сообщением (HTML-режим)
 # ---------------------------------------------------------------------------
 MD_TOKEN_RE = re.compile(r"\*\*(.+?)\*\*|\[([^\]]+)\]\(((?:https?|tg)://[^\s)]+)\)", re.S)
+TAG_RE = re.compile(r"<[^>]+>")
+BLOCKQUOTE_RE = re.compile(r"<blockquote(?: expandable)?>.*?</blockquote>", re.S)
 
 
-def rich_text(text: str) -> Any:
-    """Мини-разметка → RichText: **жирный** и [текст](url). Остальное — обычная строка."""
-    out: List[Any] = []
+def markup_plain(text: str) -> str:
+    """Обычный текст → Telegram-HTML: экранирование плюс мини-разметка **жирный** и [текст](url)."""
+    out: List[str] = []
     pos = 0
     for m in MD_TOKEN_RE.finditer(text):
-        if m.start() > pos:
-            out.append(text[pos:m.start()])
+        out.append(html.escape(text[pos:m.start()], quote=False))
         if m.group(1) is not None:
-            out.append({"type": "bold", "text": rich_text(m.group(1))})
+            out.append("<b>" + markup_plain(m.group(1)) + "</b>")
         else:
-            out.append({"type": "url", "text": m.group(2), "url": m.group(3)})
+            out.append(f'<a href="{html.escape(m.group(3), quote=True)}">{html.escape(m.group(2), quote=False)}</a>')
         pos = m.end()
-    if pos < len(text):
-        out.append(text[pos:])
-    if not out:
-        return ""
-    if len(out) == 1 and isinstance(out[0], str):
-        return out[0]
-    return out
+    out.append(html.escape(text[pos:], quote=False))
+    return "".join(out)
 
 
-def split_title(caption: str) -> Tuple[str, str]:
-    """Первая строка — заголовок (если есть ещё текст и она короче 140 символов), остальное — тело."""
-    text = (caption or "").strip()
-    if "\n" not in text:
-        return "", text
-    first, rest = text.split("\n", 1)
-    first, rest = first.strip(), rest.strip()
-    if first and rest and len(first) <= 140 and not first.endswith((".", ":", ";", ",")):
-        return first, rest
-    return "", text
+def caption_html_of(post: Dict[str, Any]) -> str:
+    """Подпись поста в Telegram-HTML: caption_html (исходная вёрстка канала) либо caption с мини-разметкой."""
+    return (post.get("caption_html") or markup_plain(post.get("caption", "") or "")).strip()
 
 
-def paragraphs(text: str) -> List[str]:
-    return [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+def visible_len(markup: str) -> int:
+    """Длина текста без тегов, как её считает Telegram (UTF-16 единицы)."""
+    plain = html.unescape(TAG_RE.sub("", markup))
+    return len(plain.encode("utf-16-le")) // 2
 
 
-def rich_blocks(post: Dict[str, Any], manifest: Dict[str, Any], photos: List[Path],
-                video_file: Optional[Path] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Tuple[str, bytes]]]:
-    """Собирает блоки rich message: медиа (слайдшоу / фото / видео), заголовок, абзацы, подвал."""
+def plain_text(markup: str) -> str:
+    return html.unescape(TAG_RE.sub("", markup))
+
+
+def paragraphs_html(chunk: str) -> str:
+    """Текст между цитатами → <p>…</p> по пустым строкам; одиночные переводы строк → <br/>."""
+    parts = [x.strip() for x in re.split(r"\n\s*\n", chunk) if x.strip()]
+    return "".join("<p>" + x.replace("\n", "<br/>") + "</p>" for x in parts)
+
+
+def html_to_rich_blocks(caption_html: str) -> str:
+    """Telegram-HTML подписи (b/i/u/s/a/code/blockquote и переводы строк) → блоки rich HTML."""
+    text = caption_html.replace("\r\n", "\n").strip()
+    out: List[str] = []
+    pos = 0
+    for m in BLOCKQUOTE_RE.finditer(text):
+        out.append(paragraphs_html(text[pos:m.start()]))
+        out.append(m.group(0).replace("\n", "<br/>"))
+        pos = m.end()
+    out.append(paragraphs_html(text[pos:]))
+    return "".join(out)
+
+
+def rich_html(post: Dict[str, Any], manifest: Dict[str, Any], photos: List[Path],
+              video_file: Optional[Path] = None) -> Tuple[str, List[Dict[str, Any]], Dict[str, Tuple[str, bytes]]]:
+    """Собирает rich message в HTML-режиме: медиа (слайдшоу / фото / видео), текст с исходной вёрсткой, подвал.
+
+    Возвращает (html, media, files): media — список InputRichMessageMedia для ссылок tg://photo?id=…,
+    files — вложения multipart (attach://…)."""
     if len(photos) > RICH_MEDIA_LIMIT:
         raise ValueError(f"в rich message максимум {RICH_MEDIA_LIMIT} медиа, получено {len(photos)}")
-    blocks: List[Dict[str, Any]] = []
+    media: List[Dict[str, Any]] = []
     files: Dict[str, Tuple[str, bytes]] = {}
-
-    def photo_block(i: int, p: Path) -> Dict[str, Any]:
-        key = f"file{i}"
-        files[key] = (p.name, p.read_bytes())
-        return {"type": "photo", "photo": {"type": "photo", "media": f"attach://{key}"}}
-
     if video_file is not None:
         files["video"] = (video_file.name, video_file.read_bytes())
         files["cover"] = (photos[0].name, photos[0].read_bytes())
-        blocks.append({"type": "video", "video": {"type": "video", "media": "attach://video",
-                                                   "cover": "attach://cover", "supports_streaming": True}})
-    elif len(photos) > 1:
-        blocks.append({"type": "slideshow", "blocks": [photo_block(i, p) for i, p in enumerate(photos)]})
+        media.append({"id": "video", "media": {"type": "video", "media": "attach://video",
+                                               "cover": "attach://cover", "supports_streaming": True}})
+        body = '<video src="tg://video?id=video"></video>'
     else:
-        blocks.append(photo_block(0, photos[0]))
-
-    title, body = split_title(post.get("caption", ""))
-    if title:
-        blocks.append({"type": "heading", "text": rich_text(title), "size": int(manifest.get("rich_heading_size", 4))})
-    for para in paragraphs(body):
-        blocks.append({"type": "paragraph", "text": rich_text(para)})
+        imgs = []
+        for i, p in enumerate(photos):
+            key = f"file{i}"
+            files[key] = (p.name, p.read_bytes())
+            media.append({"id": key, "media": {"type": "photo", "media": f"attach://{key}"}})
+            imgs.append(f'<img src="tg://photo?id={key}"/>')
+        body = "<tg-slideshow>" + "".join(imgs) + "</tg-slideshow>" if len(imgs) > 1 else imgs[0]
+    body += html_to_rich_blocks(caption_html_of(post))
     if post.get("type") == "video" and video_file is None and post.get("video", {}).get("duration"):
-        blocks.append({"type": "paragraph", "text": f"🎬 {post['video']['duration']}"})
-    footer = manifest.get("footer_md", "") if post.get("append_footer", True) else ""
+        body += f"<p>🎬 {post['video']['duration']}</p>"
+    footer = manifest.get("footer_html", "") if post.get("append_footer", True) else ""
     if footer:
-        blocks.append({"type": "footer", "text": rich_text(footer)})
-    return blocks, files
+        body += "<footer>" + footer.strip().replace("\n", "<br/>") + "</footer>"
+    return body, media, files
 
 
 def wants_rich(post: Dict[str, Any], manifest: Dict[str, Any], caption_overflows: bool) -> bool:
@@ -449,14 +462,14 @@ def publish(tg: Telegram, chat_id: Any, post: Dict[str, Any], manifest: Dict[str
     sent: List[Dict[str, Any]] = []
     if wants_rich(post, manifest, overflow is not None):
         video_file = ensure_video_file(post, assets_dir) if kind == "video" and not dry_run else None
-        blocks, attach = rich_blocks(post, manifest, files, video_file)
-        plan = f"#{post['id']} [{kind}] rich message: {len(blocks)} блок(ов), {len(attach)} файл(ов)"
+        body, media, attach = rich_html(post, manifest, files, video_file)
+        plan = f"#{post['id']} [{kind}] rich message: {len(media)} медиа, {visible_len(body)} симв. текста"
         if dry_run:
             log.info("DRY RUN %s → %s", plan, chat_id)
             return []
         log.info("отправляю %s → %s", plan, chat_id)
         try:
-            sent.append(tg.send_rich(chat_id, blocks, attach))
+            sent.append(tg.send_rich(chat_id, body, media, attach))
             return sent
         except TelegramError as e:
             if e.code != 404 and "rich" not in e.description.lower():

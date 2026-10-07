@@ -198,47 +198,47 @@ class RichTests(unittest.TestCase):
                 p = self.assets / post["id"] / item["file"]
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_bytes(b"\x89PNG " + item["file"].encode())
-        self.manifest = dict(MANIFEST, rich_mode="auto")
+        self.manifest = dict(MANIFEST, rich_mode="auto",
+                             footer_html='🙂<b>Top news: </b><a href="https://t.me/clubs"><b>@clubs</b></a>\n<a href="https://t.me/clubsds"><b>Clubs Сhat</b></a>')
 
     def tearDown(self):
         self.tmp.cleanup()
 
-    def test_rich_text(self):
-        self.assertEqual(bot.rich_text("plain"), "plain")
-        self.assertEqual(bot.rich_text("a **b** c"), ["a ", {"type": "bold", "text": "b"}, " c"])
-        self.assertEqual(bot.rich_text("[x](https://t.me/x)"), [{"type": "url", "text": "x", "url": "https://t.me/x"}])
-        self.assertEqual(bot.rich_text("**[x](https://t.me/x)!**"),
-                         [{"type": "bold", "text": [{"type": "url", "text": "x", "url": "https://t.me/x"}, "!"]}])
+    def test_markup_plain(self):
+        self.assertEqual(bot.markup_plain("a & **b** [x](https://t.me/x)"),
+                         'a &amp; <b>b</b> <a href="https://t.me/x">x</a>')
 
-    def test_split_title_and_paragraphs(self):
-        self.assertEqual(bot.split_title("Title\n\nBody\n\nMore"), ("Title", "Body\n\nMore"))
-        self.assertEqual(bot.split_title("One line only"), ("", "One line only"))
-        self.assertEqual(bot.paragraphs("A\n\nB\n \nC"), ["A", "B", "C"])
+    def test_visible_len_ignores_tags_and_counts_utf16(self):
+        self.assertEqual(bot.visible_len('<b>ab</b> &amp; 🙂'), 7)  # "ab & 🙂": 6 символов, эмодзи = 2 единицы UTF-16
 
-    def test_rich_blocks_carousel(self):
-        post = MANIFEST["posts"][1]
+    def test_html_to_rich_blocks(self):
+        src = "Title\n\n<blockquote expandable>Quote line 1\nline 2</blockquote>\nTail <b>bold</b>\n\nLast"
+        self.assertEqual(bot.html_to_rich_blocks(src),
+                         "<p>Title</p><blockquote expandable>Quote line 1<br/>line 2</blockquote><p>Tail <b>bold</b></p><p>Last</p>")
+
+    def test_rich_html_carousel(self):
+        post = dict(MANIFEST["posts"][1], caption_html="<b>Карусель</b>\n\n<blockquote expandable>Текст</blockquote>")
         photos = [self.assets / "2" / m["file"] for m in post["media"]]
-        blocks, files = bot.rich_blocks(post, self.manifest, photos)
-        self.assertEqual(blocks[0]["type"], "slideshow")
-        self.assertEqual([b["photo"]["media"] for b in blocks[0]["blocks"]], ["attach://file0", "attach://file1", "attach://file2"])
-        self.assertEqual(files["file0"][0], "cover.png")
-        self.assertEqual(blocks[1], {"type": "paragraph", "text": "Карусель"})
-        self.assertEqual(blocks[-1]["type"], "footer")
-        self.assertEqual(blocks[-1]["text"][1], {"type": "url", "text": "@clubs", "url": "https://t.me/clubs"})
+        body, media, files = bot.rich_html(post, self.manifest, photos)
+        self.assertTrue(body.startswith('<tg-slideshow><img src="tg://photo?id=file0"/><img src="tg://photo?id=file1"/><img src="tg://photo?id=file2"/></tg-slideshow>'))
+        self.assertIn("<p><b>Карусель</b></p><blockquote expandable>Текст</blockquote>", body)
+        self.assertTrue(body.endswith('<footer>🙂<b>Top news: </b><a href="https://t.me/clubs"><b>@clubs</b></a><br/><a href="https://t.me/clubsds"><b>Clubs Сhat</b></a></footer>'))
+        self.assertEqual(media[0], {"id": "file0", "media": {"type": "photo", "media": "attach://file0"}})
+        self.assertEqual(set(files), {"file0", "file1", "file2"})
 
-    def test_rich_blocks_single_with_heading(self):
-        post = MANIFEST["posts"][0]
-        blocks, files = bot.rich_blocks(post, self.manifest, [self.assets / "1" / "tx.png"])
-        self.assertEqual(blocks[0]["type"], "photo")
-        self.assertEqual(blocks[1], {"type": "heading", "text": "Заголовок", "size": 4})
-        self.assertEqual(blocks[2], {"type": "paragraph", "text": "Текст & подробности"})
+    def test_rich_html_single_photo_escapes_plain_caption(self):
+        post = MANIFEST["posts"][0]  # caption без caption_html, с & внутри
+        body, media, files = bot.rich_html(post, self.manifest, [self.assets / "1" / "tx.png"])
+        self.assertTrue(body.startswith('<img src="tg://photo?id=file0"/><p>Заголовок</p><p>Текст &amp; подробности</p>'))
+        self.assertEqual(len(media), 1)
 
     def test_publish_carousel_goes_rich(self):
         tr = FakeTransport()
         sent = bot.publish(bot.Telegram("t", tr), -100, MANIFEST["posts"][1], self.manifest, self.assets)
         self.assertEqual([c[0] for c in tr.calls], ["sendRichMessage"])
         method, fields, files = tr.calls[0]
-        self.assertEqual(fields["rich_message"]["blocks"][0]["type"], "slideshow")
+        self.assertIn("<tg-slideshow>", fields["rich_message"]["html"])
+        self.assertEqual(len(fields["rich_message"]["media"]), 3)
         self.assertEqual(set(files), {"file0", "file1", "file2"})
         self.assertEqual(len(sent), 1)
 
@@ -247,13 +247,21 @@ class RichTests(unittest.TestCase):
         bot.publish(bot.Telegram("t", tr), -100, MANIFEST["posts"][3], self.manifest, self.assets)  # длинный → rich
         bot.publish(bot.Telegram("t", tr), -100, MANIFEST["posts"][0], self.manifest, self.assets)  # короткий → классика
         self.assertEqual([c[0] for c in tr.calls], ["sendRichMessage", "sendPhoto"])
+        self.assertEqual(tr.calls[1][1]["parse_mode"], "HTML")
+
+    def test_classic_caption_keeps_source_markup(self):
+        post = dict(MANIFEST["posts"][0], caption_html="<b>T</b>\n\n<blockquote expandable>Q</blockquote>")
+        caption, overflow = bot.build_caption(post, self.manifest)
+        self.assertIsNone(overflow)
+        self.assertTrue(caption.startswith("<b>T</b>\n\n<blockquote expandable>Q</blockquote>\n\n🙂<b>Top news"))
 
     def test_all_mode_video_block(self):
         (self.assets / "3" / "video.mp4").write_bytes(b"mp4")
         tr = FakeTransport()
         bot.publish(bot.Telegram("t", tr), -100, MANIFEST["posts"][2], dict(self.manifest, rich_mode="all"), self.assets)
-        blocks = tr.calls[0][1]["rich_message"]["blocks"]
-        self.assertEqual(blocks[0]["video"]["cover"], "attach://cover")
+        rm = tr.calls[0][1]["rich_message"]
+        self.assertTrue(rm["html"].startswith('<video src="tg://video?id=video"></video>'))
+        self.assertEqual(rm["media"][0]["media"]["cover"], "attach://cover")
         self.assertEqual(set(tr.calls[0][2]), {"video", "cover"})
 
     def test_rich_fallback_to_classic_on_404(self):
