@@ -19,8 +19,8 @@
 | 05 · TRON | Clubs Scan / 11 TRX — Transaction Detail (brick) | `606:6045` | 429 |
 | 06 · Desktop Cascade | Transaction Detail — Desktop Cascade (brick) | `584:5539` | 5 |
 | 07 · Carousel Cover | Carousel Cover / Win95 Alert — Tectonic (brick) | `611:2328` | — |
-| 08 · Carousel — One Image Post | One Image Post / Explorer — 01…04 (окно Clubs Explorer, 1365×1367) | бывшая группа ONE IMAGE POST v2 | — |
-| 08 · Carousel — One Image Post | One Image Post / Help Topics — 01…04 (окно clubs system image view, 1454×1454) | бывшая группа ONE IMAGE POST v1 | — |
+| 08 · Carousel Post | Carousel Post / Explorer — 01…04 (окно Clubs Explorer, 1365×1367) | бывшая группа ONE IMAGE POST v2 | — |
+| 08 · Carousel Post | Carousel Post / Help Topics — 01…04 (окно clubs system image view, 1454×1454) | бывшая группа ONE IMAGE POST v1 | — |
 
 Фрейм 02 (TRON-исходник) удалён пользователем; его данные живут в 10 и 11.
 
