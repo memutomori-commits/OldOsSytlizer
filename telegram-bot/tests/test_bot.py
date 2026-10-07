@@ -232,3 +232,35 @@ class ImportTests(unittest.TestCase):
         self.assertTrue((self.cfg.assets_dir / "3" / "cover.png").exists())
         self.assertFalse((self.cfg.assets_dir / "999").exists())
         self.assertEqual(bot.missing_assets(MANIFEST["posts"][1], self.cfg.assets_dir), [])
+
+
+class EnvTests(unittest.TestCase):
+    def test_parse_env_value(self):
+        self.assertEqual(bot.parse_env_value("123:AAH            # токен"), "123:AAH")
+        self.assertEqual(bot.parse_env_value('"-100123"  # id'), "-100123")
+        self.assertEqual(bot.parse_env_value("  abc  "), "abc")
+        self.assertEqual(bot.parse_env_value("a#b"), "a#b")
+
+    def test_load_dotenv_strips_comments(self):
+        with tempfile.TemporaryDirectory() as d:
+            env = Path(d) / ".env"
+            env.write_text("# comment\nTEST_BOT_X=123456789:AAHabcdefghijklmnopqrstuvwxyz0123456   # note\nexport TEST_BOT_Y='-100'\n",
+                           encoding="utf-8")
+            for k in ("TEST_BOT_X", "TEST_BOT_Y"):
+                os.environ.pop(k, None)
+            bot.load_dotenv(env)
+            self.assertEqual(os.environ["TEST_BOT_X"], "123456789:AAHabcdefghijklmnopqrstuvwxyz0123456")
+            self.assertEqual(os.environ["TEST_BOT_Y"], "-100")
+
+    def test_token_validation(self):
+        cfg = bot.Config()
+        cfg.bot_token = "123456789:AA...            "
+        with self.assertRaises(SystemExit):
+            cfg.require_token()
+        cfg.bot_token = "123456789:AAHabcdefghijklmnopqrstuvwxyz0123456"
+        self.assertEqual(cfg.require_token(), cfg.bot_token)
+        cfg.channel_id = "t.me/+abc"
+        with self.assertRaises(SystemExit):
+            cfg.require_channel()
+        cfg.channel_id = "-1001234567890"
+        self.assertEqual(cfg.require_channel(), "-1001234567890")

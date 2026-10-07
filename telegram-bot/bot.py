@@ -46,19 +46,33 @@ log = logging.getLogger("clubs-bot")
 # ---------------------------------------------------------------------------
 # Конфигурация
 # ---------------------------------------------------------------------------
+def parse_env_value(raw: str) -> str:
+    """Значение из .env: кавычки снимаются, комментарий после « #» и пробелы по краям отбрасываются."""
+    value = raw.strip()
+    if len(value) >= 2 and value[0] in "\"'" and value[0] in value[1:]:
+        quote = value[0]
+        return value[1:value.index(quote, 1)]
+    return re.split(r"\s+#", value, 1)[0].strip()
+
+
 def load_dotenv(path: Path) -> None:
-    """Минимальный парсер .env: KEY=VALUE, строки с # игнорируются.
-    Уже заданные переменные окружения не перезаписываются."""
+    """Минимальный парсер .env: KEY=VALUE, строки с # игнорируются, комментарии после
+    значения (« # …») отрезаются. Уже заданные переменные окружения не перезаписываются."""
     if not path.exists():
         return
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    for raw in path.read_text(encoding="utf-8-sig").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, _, value = line.partition("=")
         key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        os.environ.setdefault(key, value)
+        if key.startswith("export "):
+            key = key[7:].strip()
+        os.environ.setdefault(key, parse_env_value(value))
+
+
+TOKEN_RE = re.compile(r"^\d{6,}:[A-Za-z0-9_-]{30,}$")
+CHAT_ID_RE = re.compile(r"^(-?\d+|@[A-Za-z0-9_]{5,})$")
 
 
 class Config:
@@ -75,8 +89,18 @@ class Config:
 
     def require_token(self) -> str:
         if not self.bot_token:
-            sys.exit("BOT_TOKEN не задан: добавьте его в .env или переменные окружения")
+            sys.exit("BOT_TOKEN не задан: добавьте его в .env (строка BOT_TOKEN=...) или в переменные окружения")
+        if not TOKEN_RE.match(self.bot_token):
+            sys.exit(f"BOT_TOKEN выглядит неверно: {self.bot_token[:14]!r}… В .env должен быть настоящий токен "
+                     "из @BotFather вида 123456789:AAH0abc…, без пробелов, кавычек и комментариев.")
         return self.bot_token
+
+    def require_channel(self) -> str:
+        if not self.channel_id:
+            sys.exit("CHANNEL_ID не задан. Узнать id канала: python bot.py discover (после любого нового поста в канале).")
+        if not CHAT_ID_RE.match(self.channel_id):
+            sys.exit(f"CHANNEL_ID выглядит неверно: {self.channel_id!r}. Нужен числовой id вида -1001234567890 или @username.")
+        return self.channel_id
 
 
 # ---------------------------------------------------------------------------
@@ -433,9 +457,7 @@ def cmd_list(cfg: Config, manifest: Dict[str, Any]) -> int:
 
 def cmd_post(cfg: Config, manifest: Dict[str, Any], target: str, dry_run: bool, delay: float,
              chat: Optional[str]) -> int:
-    chat_id = chat or cfg.channel_id
-    if not chat_id and not dry_run:
-        sys.exit("CHANNEL_ID не задан (например -1001234567890 или @username). Узнать id: python bot.py discover")
+    chat_id = chat or (cfg.channel_id if dry_run else cfg.require_channel())
     tg = Telegram(cfg.require_token() if not dry_run else cfg.bot_token or "dry")
     posts = manifest["posts"] if target == "all" else [find_post(manifest, target)]
     failed = 0
@@ -456,9 +478,21 @@ def chat_label(chat: Dict[str, Any]) -> str:
     return f"{chat.get('id')}  [{chat.get('type')}]  {name}"
 
 
+def whoami(tg: Telegram) -> Dict[str, Any]:
+    """getMe с понятными сообщениями вместо трейсбека."""
+    try:
+        return tg.get_me()
+    except TelegramError as e:
+        if e.code == 401:
+            sys.exit("Telegram ответил 401 Unauthorized: токен неверный или отозван. Проверьте BOT_TOKEN в .env.")
+        sys.exit(f"Telegram: {e}")
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        sys.exit(f"Нет связи с api.telegram.org: {e}. Проверьте интернет/VPN и повторите.")
+
+
 def cmd_discover(cfg: Config) -> int:
     tg = Telegram(cfg.require_token())
-    me = tg.get_me()
+    me = whoami(tg)
     print(f"Бот: @{me.get('username')} (id {me.get('id')})")
     print("Добавьте бота администратором в тестовый канал и опубликуйте там любое сообщение,\n"
           "либо перешлите сообщение из канала боту в личку. Затем запустите discover ещё раз.\n")
@@ -554,7 +588,9 @@ def handle_command(tg: Telegram, cfg: Config, manifest: Dict[str, Any], msg: Dic
 
 def cmd_serve(cfg: Config, manifest: Dict[str, Any]) -> int:
     tg = Telegram(cfg.require_token())
-    me = tg.get_me()
+    if cfg.channel_id and not CHAT_ID_RE.match(cfg.channel_id):
+        sys.exit(f"CHANNEL_ID выглядит неверно: {cfg.channel_id!r}. Нужен числовой id вида -1001234567890 или @username.")
+    me = whoami(tg)
     log.info("бот @%s запущен; канал: %s; владельцы: %s", me.get("username"), cfg.channel_id or "(не задан)",
              sorted(cfg.owner_ids) or "любой")
     offset: Optional[int] = None
