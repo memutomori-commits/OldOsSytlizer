@@ -63,3 +63,10 @@
     npm run build
 
 Это только `tsc` без бандлера. `ui.html` — обычный HTML без зависимостей.
+
+## Telegram-бот и страница CLUBS / TELEGRAM READY
+
+В папке [`telegram-bot/`](telegram-bot/README.md) лежит бот, который публикует в Telegram-канал
+посты, оформленные по шаблонам со страницы Figma **CLUBS / MAIN 3** (готовые макеты — на странице
+**CLUBS / TELEGRAM READY**, манифест — `telegram-bot/posts.json`). Запуск, настройка и экспорт
+PNG из Figma описаны в его README.

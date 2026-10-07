@@ -1,0 +1,5 @@
+.env
+assets/**/*.png
+assets/**/*.jpg
+assets/**/*.mp4
+__pycache__/

@@ -1,0 +1,385 @@
+{
+  "_comment": "Манифест для bot.py: посты канала @clubs, оформленные на странице Figma «CLUBS / TELEGRAM READY» (файл nauetSvKmcBNlynjR3p4Rp). PNG кладутся в assets/<id>/<file>; node — id фрейма для export_figma.py.",
+  "figma_file_key": "nauetSvKmcBNlynjR3p4Rp",
+  "figma_page": "CLUBS / TELEGRAM READY",
+  "footer_html": "🙂Top news: <a href=\"https://t.me/clubs\">@clubs</a>\n<a href=\"https://t.me/clubsds\">Clubs Сhat</a> // <a href=\"https://t.me/clubsmarket\">Clubs Market</a>",
+  "posts": [
+    {
+      "id": "253",
+      "type": "transaction",
+      "title": "ETH · Across exploiter refunds 331.84 ETH",
+      "source": "https://t.me/clubs/253",
+      "date": "2026-07-28",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:5901",
+      "caption": "Across Protocol exploiter returns $624K in ETH\n\nThe wallet labeled as the Across Protocol exploiter has refunded 331.8 ETH (~$624K) to the protocol's Hub Pool Owner Multisig.\n\nAcross Protocol was previously exploited on Solana, with attackers draining approximately $3.6M in crypto. It remains unclear whether any additional funds will be returned.\n\nTx:\n0x61c0661a2d1ca0ba165a1d3cfaa941fb93d962e22c1ba2b8c842c9d33f06d40f",
+      "media": [
+        {
+          "node": "736:5901",
+          "file": "eth_tx.png"
+        }
+      ]
+    },
+    {
+      "id": "460",
+      "type": "transaction",
+      "title": "ETH · Payy bridge exploit $1.83M",
+      "source": "https://t.me/clubs/460",
+      "date": "2026-09-24",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:6152",
+      "caption": "Payy Network Halts After $1.83M Exploit\n\nAn attacker exploited Payy’s Ethereum bridge through a malicious verifyRollup transaction at 04:21 UTC. The stolen USDC was routed through Railgun, swapped for about 683 ETH and split across multiple wallets. Payy suspended deposits, withdrawals, transfers and card payments after its bridge was drained.\n\nTransaction: 0xf43abdac5422087f645d77923eb1c825178bff3eb86d17d40fa18d89701e1814",
+      "media": [
+        {
+          "node": "736:6152",
+          "file": "eth_tx.png"
+        }
+      ]
+    },
+    {
+      "id": "452",
+      "type": "transaction",
+      "title": "SOL · London phone theft, Phantom drained",
+      "source": "https://t.me/clubs/452",
+      "date": "2026-09-17",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:6403",
+      "caption": "$200K Crypto Theft After Phone Stolen in London\n\nA victim says thieves stole their iPhone near London Bridge, bypassed Face ID and drained a Phantom wallet. The affected wallets reportedly held 0.6% of ALLINU’s supply, which was sold in two large transactions. Confirmed losses are near $200K, while possible MetaMask losses are still being assessed.\n\nwallet : 2X5TaYNaap1Ksy2iUjnVmkaG8eQ2wPbsV1An7F4n4V94\n\n🙂 Top news: @clubs",
+      "media": [
+        {
+          "node": "736:6403",
+          "file": "sol_tx.png"
+        }
+      ]
+    },
+    {
+      "id": "475",
+      "type": "transaction",
+      "title": "POL · MALT exploit $72K via DAI",
+      "source": "https://t.me/clubs/475",
+      "date": "2026-10-04",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:6667",
+      "caption": "MALT Exploited for $72K\n\nAn attacker abused MALT’s Polygon swap logic by triggering a rebalance hook with almost no input. The hook injected protocol-owned DAI into the pool, which was counted as attacker liquidity and used to withdraw excess MALT.\n\nTransaction : 0x915eccb5791508aa89a0a3f1385b26346b127ebb648b046e4cb558474ce8445b",
+      "media": [
+        {
+          "node": "736:6667",
+          "file": "pol_tx.png"
+        }
+      ]
+    },
+    {
+      "id": "112",
+      "type": "transaction",
+      "title": "BTC · dormant 2013 wallet, 16.5 BTC drained",
+      "source": "https://t.me/clubs/112",
+      "date": "2026-06-17",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:6929",
+      "caption": "A dormant 2013 BTC wallet containing 16.5 BTC ($1.07M) has just been accessed.\n\nThe owner reportedly asked for help securing the wallet, but before the funds could be protected, another party appears to have gained access and drained the BTC to a separate wallet.\n\nAdderss: bc1qn7sjtm0fx22wc3xyv0rxul8e9vtx2kp7tksqhf\n\nTransaction: c2f0c0bba9eebf21f7ab6e2d1052e41b3373624e175bf683acb65a0c5746e78b",
+      "media": [
+        {
+          "node": "736:6929",
+          "file": "btc_tx.png"
+        }
+      ]
+    },
+    {
+      "id": "103",
+      "type": "transaction",
+      "title": "TRX · $120M stolen USDT laundered via Tron",
+      "source": "https://t.me/clubs/103",
+      "date": "2026-06-12",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:7191",
+      "caption": "Over $120M in Stolen USDT Laundered Through Tron\n\nBlockchain investigator ZachXBT reported that attackers laundered more than $120.2 million in stolen USDT through the Tron network, using exchanges, bridges, and large-scale Monero (XMR) purchases to obscure the funds.\n\nKey wallet:\nhttps://tronscan.org/address/TA6YHqB2xh5HhfmC7WoLQaWmqq7Vv4zCoQ/transactions\n\nFrozen wallet:\nhttps://tronscan.org/address/TBzrPEsStbZAUx2SBhD4oHz8UW3FX9Ak9W/transactions\n\nThe investigation is ongoing as analysts continue tracing the remaining funds across multiple networks.",
+      "media": [
+        {
+          "node": "736:7191",
+          "file": "trx_tx.png"
+        }
+      ]
+    },
+    {
+      "id": "198",
+      "type": "one_image",
+      "title": "FBI $150K reward · Khalid Ahmed Sattari",
+      "source": "https://t.me/clubs/198",
+      "date": "2026-07-13",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:11369",
+      "caption": "The FBI has announced a $150,000 reward for information leading to the arrest of one of the most wanted fraudsters in the United States, Khalid Ahmed Sattari.\n\nAccording to the investigation, between 2016 and 2019, he orchestrated a large-scale fraud scheme involving the federal Medicare program. Through a network of call centers, medical companies, intermediaries, and doctors, bills were submitted for unnecessary genetic tests.\n\nThe estimated damage is approximately $547 million.",
+      "media": [
+        {
+          "node": "736:11369",
+          "file": "paint.png"
+        }
+      ]
+    },
+    {
+      "id": "453",
+      "type": "one_image",
+      "title": "Fake federal agent steals $340K in gold & BTC",
+      "source": "https://t.me/clubs/453",
+      "date": "2026-09-18",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:11708",
+      "caption": "Fake Federal Agent Steals $340K in Gold and Bitcoin\n\nA Massachusetts woman was allegedly convinced that handing over gold bars and Bitcoin would help “stop the Russians.”Detectives used license-plate data and surveillance footage to identify suspect Amritpal Singh and trace him to New York. U.S.",
+      "media": [
+        {
+          "node": "736:11708",
+          "file": "paint.png"
+        }
+      ]
+    },
+    {
+      "id": "390",
+      "type": "one_image",
+      "title": "UK police seize $1.4M BTC from darknet markets",
+      "source": "https://t.me/clubs/390",
+      "date": "2026-08-29",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:12047",
+      "caption": "UK Police seized $1.4M in Bitcoin linked to defunct darknet markets.\n\nAvon and Somerset Police forfeited 20.21 BTC plus other assets, worth over £1M traced to darknet markets shut down years ago (2016–2019).\nReminder: blockchain leaves a permanent trail. Crypto isn't as safe for illicit funds as people think.",
+      "media": [
+        {
+          "node": "736:12047",
+          "file": "paint.png"
+        }
+      ]
+    },
+    {
+      "id": "203",
+      "type": "dossier",
+      "title": "Callum Dyer (KT), Doxbin admin, 2y3m prison",
+      "source": "https://t.me/clubs/203",
+      "date": "2026-07-14",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:13619",
+      "caption": "Doxbin administrator sentenced to 2 years and 3 months in prison\n\n26-year-old Callum Dyer (KT) from Wales was sentenced for aiding attacks with false emergency calls (swatting) as a Doxbin administrator.\n\nThe investigation began after the FBI transferred data to British police in 2019. Investigators identified Dyer and found evidence on his devices of involvement in swatting and a phishing kit.\n\nAccording to the prosecution, Dyer coordinated participants of the #deadnet channel, encouraging the conduct of new attacks. He pleaded guilty and was sentenced to 2 years and 3 months of imprisonment.",
+      "media": [
+        {
+          "node": "736:13619",
+          "file": "dossier.png"
+        }
+      ]
+    },
+    {
+      "id": "163",
+      "type": "dossier",
+      "title": "Peter Stokes, Scattered Spider, extradited Finland → USA",
+      "source": "https://t.me/clubs/163",
+      "date": "2026-07-04",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:13704",
+      "caption": "Vibe-hacker played himself.\n\n19-year-old Peter Stokes, a citizen of the USA and Estonia, was extradited from Finland to the USA, where he will be tried on charges of participating in the hacker group Scattered Spider. He was arrested back in April right at the airport before a flight to Japan. During a search, two hard drives with evidence were found, which, according to the prosecution, indicate his involvement in cyberattacks.\n\nStokes himself did not hide his love for a luxurious life: he regularly posted photos from expensive hotels in Paris, Dubai and other cities on social media, demonstrating stacks of cash, jewelry, and even a diamond chain with the inscription \"Hack the Planet\".\n\nThe irony is that the charges feature the hacking of a major jewelry network. According to the investigation, the perpetrators stole the company's data and demanded about $8 million in cryptocurrency. The ransom was not paid, however, the damage to the business exceeded $2 million.\n\nThe group Scattered Spider (also known as Octo Tempest, UNC3944 and 0ktapus) is considered one of the most dangerous in recent years. It is linked to high-profile attacks on MGM Resorts, Caesars Entertainment and the British Marks & Spencer. According to the prosecution, the participants have more than 100 successful hacks and over $100 million obtained through extortion on their record.",
+      "media": [
+        {
+          "node": "736:13704",
+          "file": "dossier.png"
+        }
+      ]
+    },
+    {
+      "id": "411",
+      "type": "carousel",
+      "title": "Tectonic exploit $75M",
+      "source": "https://t.me/clubs/411",
+      "date": "2026-09-04",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:13865",
+      "caption": "Tectonic Exploit Sends $75M Into Chaos\n\nOn August 30 Tectonic on Cronos suffered a major exploit after an attacker manipulated the low liquidity TONIC governance token pushing its price nearly 100x in under 20 minutes. The inflated value was then used as collateral to borrow assets from the protocol\nAround $6.29M was moved to Ethereum and converted into more than 2,600 ETH. An estimated $68.7M remains on Cronos where the affected funds have been paused. The attacker later sent 2,659 ETH to Tornado Cash making the trail harder to follow.\n\nSeparately PeckShieldAlert and Specter reported a possible exploit of Notional Finance’s escrow contract. The incident allegedly resulted in approximately $1.7M in DAI and USDC being stolen. The attacker then swapped the assets for 689.2 ETH and deposited the funds into Tornado Cash further complicating the tracking and recovery process. The two incidents show how quickly stolen assets can be converted and moved across networks after an exploit.\nThe exploit began with TONIC’s price being artificially inflated nearly 100x",
+      "media": [
+        {
+          "node": "736:13865",
+          "file": "cover.png"
+        },
+        {
+          "node": "736:13889",
+          "file": "slide_01.png"
+        },
+        {
+          "node": "736:14429",
+          "file": "slide_02.png"
+        },
+        {
+          "node": "736:14969",
+          "file": "slide_03.png"
+        },
+        {
+          "node": "736:15509",
+          "file": "slide_04.png"
+        }
+      ]
+    },
+    {
+      "id": "152",
+      "type": "carousel",
+      "title": "Italian police bust fake €2 coin ring",
+      "source": "https://t.me/clubs/152",
+      "date": "2026-06-27",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:16049",
+      "caption": "Italian police bust fake €2 coin ring\n\nThree Chinese nationals were arrested in Italy over suspicions of running a large-scale operation producing counterfeit €2 coins.\n\nInvestigators say that since late 2025, the group circulated around 20,000 fake coins, which were used in arcade machines to exchange for real cash.\n\nThe counterfeit coins were reportedly manufactured with materials smuggled from China and were highly sophisticated, closely matching genuine coins in weight, size, and magnetic properties.",
+      "media": [
+        {
+          "node": "736:16049",
+          "file": "cover.png"
+        },
+        {
+          "node": "736:16073",
+          "file": "slide_01.png"
+        },
+        {
+          "node": "736:16613",
+          "file": "slide_02.png"
+        },
+        {
+          "node": "736:17153",
+          "file": "slide_03.png"
+        }
+      ]
+    },
+    {
+      "id": "166",
+      "type": "carousel",
+      "title": "Dritan spotted on the run",
+      "source": "https://t.me/clubs/166",
+      "date": "2026-07-05",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:17693",
+      "caption": "ZachXBT investigation sparks new claims about Dritan\n\nFollowing ZachXBT's investigation, Dritan (@dritan) was allegedly spotted on the run, partying while staying in an illegal rental property that reportedly violates Florida rental regulations.\n\nInsider sources also claim he has been attempting to start a new relationship after his ex-girlfriend left him.\nThese allegations have not been independently verified.",
+      "media": [
+        {
+          "node": "736:17693",
+          "file": "cover.png"
+        },
+        {
+          "node": "736:17717",
+          "file": "slide_01.png"
+        },
+        {
+          "node": "736:18062",
+          "file": "slide_02.png"
+        },
+        {
+          "node": "736:18407",
+          "file": "slide_03.png"
+        },
+        {
+          "node": "736:18752",
+          "file": "slide_04.png"
+        }
+      ]
+    },
+    {
+      "id": "161",
+      "type": "video",
+      "title": "\"Batman\" ATM heist fails (2:05)",
+      "source": "https://t.me/clubs/161",
+      "date": "2026-06-29",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:21687",
+      "caption": "\"Batman\" and friends fail ATM heist after excavator breaks down\n\nA group of thieves in Tobago stole an excavator and tried to rip an ATM out of a bank before loading it into a truck.\n\nThe plan fell apart when the excavator's boom malfunctioned, forcing the suspects to abandon the robbery empty-handed after spending more than 10 minutes at the scene.\n\nOne of the suspects was dressed in a black cape and mask, earning the nickname \"Batman\" from local media.",
+      "media": [
+        {
+          "node": "736:21687",
+          "file": "cover.png"
+        }
+      ],
+      "video": {
+        "file": "video.mp4",
+        "url": "https://cdn4.telesco.pe/file/62e11515df.mp4?token=LWzdMkGg4AAfnWHe60_td113yvqAQ7liuM53bCz7jqSK1Z55dCLhYQh3uT8XuyWQBGg4P08UFt82kk0DT0VHUSPrOissrgT67VxeTA-o63BExbX8ksUAybjL80YVhzMwNDKGfcUNlv4CSvb3mtHypV5FCncX8olAcaQGwGa5hsCw15WO6TLxSlhDB87NKHLjKOcr3Skxx0ABBKtfyWF4fR_NsMaw6cGsU7T2sOCvYyO4LlpbgEib3RdJ-kLtUDVzrVUMo4DmcI5x6M2S7UUF7K_FmP4N_usNj4H4lQFwDW1f7i1PnOnTo_dLiW8h26K-dJDYOnfTogYo31bDTsNbFw",
+        "duration": "2:05",
+        "note": "url — превью t.me (может протухнуть); если url пустой/битый, положите файл assets/<id>/video.mp4 вручную"
+      }
+    },
+    {
+      "id": "285",
+      "type": "video",
+      "title": "Archetyp Market operator charged (2:02)",
+      "source": "https://t.me/clubs/285",
+      "date": "2026-08-04",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:21798",
+      "caption": "Archetyp Market operator charged over €330M darknet trade\n\nA 31-year-old man accused of running Archetyp Market was charged by German authorities.\n\nThe darknet platform allegedly processed 2.3M orders and generated around €330M in drug sales. The operator was arrested in Spain, with nearly €10M in assets seized.",
+      "media": [
+        {
+          "node": "736:21798",
+          "file": "cover.png"
+        }
+      ],
+      "video": {
+        "file": "video.mp4",
+        "url": "https://cdn1.telesco.pe/file/405708ccd3.mp4?token=DakFPU_s47q-brtt6V19CIZ8o1MpxjgU693awWpkN6cO0aIHhD-9Xcaxm1mTBbViBSuu6-T-Nk8evWEC0waYCiggpys5Mg93AzAzM9AKWKbh8Wc7A3cJWv25tYJKr7Bhs1kpxqxi1__8J1HPJlvJsFWV0UgG-y2NI1-J5TVWZTp7tjxfIxuzrCEbpb5Hwc-xkwbRCBuGi6T6xvP-EO9CHefA2lDmu_4dskv7pkXm1-9B0skindYWmvvis7CENpZ6-WY4NGFOXGLuldyDncKO5PY126xxNlKEavRWdjEfYLi9HNYLabipjs0uOmUOFoklTyW8rQaMSi6_5ulfaw9z1lirgvATl2UTvK9uFMwUYnUlSeRsBF4o2yMePmdEFbIZPXXdTfTRL9FMnvuTgmouhyKqruAbQcroLFShWxDsJfudrS0dvyBbJG-zSZLqM_tfqvQfbLe29JF_vQQ80Oy0uzyrgSfU-OVirZqZwLPlpXw0ZNogI4M2CtJOes1W2TAj2ffwDqYLgol33sq3db0wSkfdgNmqlTFsYY4Nz1XBGDMPs7JigatysrG-rl0WyGPwvLMiI64Kf-kWTxSeMMZ7KVK3-Gm7kBZVnVJpcOgZVtayRg84md7czHqtgziivd00BDk1OuE4fTHTnrYwRyjAiD-ftB4BWxFF0xLdfw1gzOk",
+        "duration": "2:02",
+        "note": "url — превью t.me (может протухнуть); если url пустой/битый, положите файл assets/<id>/video.mp4 вручную"
+      }
+    },
+    {
+      "id": "224",
+      "type": "video",
+      "title": "Andrew & Tristan Tate arrested in Miami (1:01)",
+      "source": "https://t.me/clubs/224",
+      "date": "2026-07-19",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:21909",
+      "caption": "Andrew and Tristan Tate arrested in Miami\n\nAndrew Tate and Tristan Tate have reportedly been arrested by U.S. Marshals in Miami after UK authorities filed 38 additional charges related to alleged sexual offenses.\n\nThe brothers are expected to face extradition proceedings to the UK.\nThe arrests come shortly after the pair visited Washington, D.C., where they reportedly met with members of Congress. Both are now in federal custody.",
+      "media": [
+        {
+          "node": "736:21909",
+          "file": "cover.png"
+        }
+      ],
+      "video": {
+        "file": "video.mp4",
+        "url": null,
+        "duration": "1:01",
+        "note": "url — превью t.me (может протухнуть); если url пустой/битый, положите файл assets/<id>/video.mp4 вручную"
+      }
+    },
+    {
+      "id": "294",
+      "type": "twitter",
+      "title": "ZachXBT refuses to investigate Coldcard hack",
+      "source": "https://t.me/clubs/294",
+      "date": "2026-08-07",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:22020",
+      "caption": "ZachXBT refuses to investigate Coldcard hack\n\nOn-chain investigator ZachXBT said he will not investigate the Coldcard wallet hack, criticizing the Bitcoin community for not supporting his work.\n\nHe pointed to a previous case where he tracked a ~$600K theft and helped freeze ~$96K, but the victim refused to contact police due to tax concerns and later ignored a $5K payment request for his investigation work.",
+      "media": [
+        {
+          "node": "736:22020",
+          "file": "twitter.png"
+        }
+      ]
+    },
+    {
+      "id": "206",
+      "type": "twitter",
+      "title": "kayte on the Doxbin admin sentencing",
+      "source": "https://t.me/clubs/206",
+      "date": "2026-07-15",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:22187",
+      "caption": "“i hope they catch the rest of the fat larps who did retarded shit in my good name zzz” — @kayte on X, reacting to the Doxbin administrator sentencing (t.me/clubs/203).",
+      "media": [
+        {
+          "node": "736:22187",
+          "file": "twitter.png"
+        }
+      ]
+    },
+    {
+      "id": "345",
+      "type": "twitter",
+      "title": "ZeroBytes claims 3 French gov breaches (thread)",
+      "source": "https://t.me/clubs/345",
+      "date": "2026-08-18",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:22354",
+      "caption": "Hacker claims breaches of 3 French government systems\n\nThreat actor ZeroBytes claims to have breached France’s tax authority, Education Ministry and land registry, allegedly stealing hundreds of millions of records.\n\nAuthorities confirmed some intrusions but dispute parts of his claims",
+      "media": [
+        {
+          "node": "736:22354",
+          "file": "twitter.png"
+        }
+      ]
+    },
+    {
+      "id": "93",
+      "type": "twitter",
+      "title": "ZachXBT $10K bounty replying to Vova Sadkov",
+      "source": "https://t.me/clubs/93",
+      "date": "2026-06-08",
+      "figma_frame": "CLUBS / TELEGRAM READY → 736:22534",
+      "caption": "Who is ZachXBT and how was he doxxed?\n\nZachXBT is a well-known crypto investigator who publishes exposés on scammers and hackers.\n\nIn 2026, users linked his account to Zachary Wolk after this name appeared in court documents. Using open sources and OSINT, researchers found a number of matches regarding age, place of residence, and biography.\n\nAfter the doxxing, the community began discussing his methods of work, funding, and possible conflicts of interest. ZachXBT himself remains one of the most influential figures in crypto investigations.",
+      "media": [
+        {
+          "node": "736:22534",
+          "file": "twitter.png"
+        }
+      ]
+    }
+  ]
+}
