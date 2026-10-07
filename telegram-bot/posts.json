@@ -1,8 +1,11 @@
 {
-  "_comment": "Манифест для bot.py: посты канала @clubs, оформленные на странице Figma «CLUBS / TELEGRAM READY» (файл nauetSvKmcBNlynjR3p4Rp). PNG кладутся в assets/<id>/<file>; node — id фрейма для export_figma.py.",
+  "_comment": "Манифест для bot.py: посты канала @clubs, оформленные на странице Figma «CLUBS / TELEGRAM READY» (файл nauetSvKmcBNlynjR3p4Rp). PNG кладутся в assets/<id>/<file>; node — id фрейма для export_figma.py. rich_mode: auto = карусели и посты с подписью длиннее 1024 символов уходят как Rich Message (листаемая галерея + заголовок + текст + подвал одним сообщением), carousel = только карусели, all = всё, none = только классические сообщения. В caption можно использовать **жирный** и [текст](url).",
   "figma_file_key": "nauetSvKmcBNlynjR3p4Rp",
   "figma_page": "CLUBS / TELEGRAM READY",
   "footer_html": "🙂Top news: <a href=\"https://t.me/clubs\">@clubs</a>\n<a href=\"https://t.me/clubsds\">Clubs Сhat</a> // <a href=\"https://t.me/clubsmarket\">Clubs Market</a>",
+  "footer_md": "🙂Top news: [@clubs](https://t.me/clubs)\n[Clubs Сhat](https://t.me/clubsds) // [Clubs Market](https://t.me/clubsmarket)",
+  "rich_mode": "auto",
+  "rich_heading_size": 4,
   "posts": [
     {
       "id": "253",

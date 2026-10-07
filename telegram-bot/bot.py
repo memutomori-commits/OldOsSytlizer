@@ -3,6 +3,10 @@
 
 Без внешних зависимостей: только стандартная библиотека Python 3.9+.
 
+Карусели (и слишком длинные посты) уходят как Rich Messages (Bot API 10.1+): листаемая галерея
++ заголовок + текст + подвал в одном сообщении. Режим задаётся в posts.json: "rich_mode":
+"auto" (карусели и длинные тексты), "carousel", "all" или "none" (только классические сообщения).
+
 Режимы:
   python bot.py import <папка>        разложить PNG, экспортированные из Figma, по assets/<id>/
   python bot.py check                 проверить posts.json и наличие PNG в assets/
@@ -38,6 +42,8 @@ API_URL = "https://api.telegram.org/bot{token}/{method}"
 CAPTION_LIMIT = 1024          # лимит подписи к медиа в Bot API
 TEXT_LIMIT = 4096             # лимит обычного сообщения
 MEDIA_GROUP_LIMIT = 10        # максимум элементов в альбоме
+RICH_MEDIA_LIMIT = 50         # максимум медиа в rich message
+RICH_MODES = ("none", "carousel", "auto", "all")
 
 BASE_DIR = Path(__file__).resolve().parent
 log = logging.getLogger("clubs-bot")
@@ -206,6 +212,11 @@ class Telegram:
                              supports_streaming=True)
 
 
+    def send_rich(self, chat_id: Any, blocks: List[Dict[str, Any]], files: Dict[str, Tuple[str, bytes]]) -> Dict[str, Any]:
+        """sendRichMessage: блоки slideshow / photo / video / heading / paragraph / footer (Bot API 10.1+)."""
+        return self.call("sendRichMessage", files=files, chat_id=chat_id, rich_message={"blocks": blocks})
+
+
 def build_media_group(photos: List[Path], caption: Optional[str]) -> Tuple[List[Dict[str, Any]], Dict[str, Tuple[str, bytes]]]:
     """Собирает InputMediaPhoto[] и словарь файлов для multipart. Подпись — у первого элемента."""
     if not photos:
@@ -248,6 +259,9 @@ def load_manifest(path: Path) -> Dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if "posts" not in data or not isinstance(data["posts"], list):
         raise ValueError("posts.json: нет массива posts")
+    mode = str(data.get("rich_mode", "auto")).lower()
+    if mode not in RICH_MODES:
+        raise ValueError(f"posts.json: rich_mode {mode!r} не поддерживается, допустимо: {', '.join(RICH_MODES)}")
     seen = set()
     for post in data["posts"]:
         for key in ("id", "type", "media"):
@@ -329,6 +343,97 @@ def ensure_video_file(post: Dict[str, Any], assets_dir: Path) -> Optional[Path]:
 
 
 # ---------------------------------------------------------------------------
+# Rich Messages (Bot API 10.1+): листаемая галерея + текст одним сообщением
+# ---------------------------------------------------------------------------
+MD_TOKEN_RE = re.compile(r"\*\*(.+?)\*\*|\[([^\]]+)\]\(((?:https?|tg)://[^\s)]+)\)", re.S)
+
+
+def rich_text(text: str) -> Any:
+    """Мини-разметка → RichText: **жирный** и [текст](url). Остальное — обычная строка."""
+    out: List[Any] = []
+    pos = 0
+    for m in MD_TOKEN_RE.finditer(text):
+        if m.start() > pos:
+            out.append(text[pos:m.start()])
+        if m.group(1) is not None:
+            out.append({"type": "bold", "text": rich_text(m.group(1))})
+        else:
+            out.append({"type": "url", "text": m.group(2), "url": m.group(3)})
+        pos = m.end()
+    if pos < len(text):
+        out.append(text[pos:])
+    if not out:
+        return ""
+    if len(out) == 1 and isinstance(out[0], str):
+        return out[0]
+    return out
+
+
+def split_title(caption: str) -> Tuple[str, str]:
+    """Первая строка — заголовок (если есть ещё текст и она короче 140 символов), остальное — тело."""
+    text = (caption or "").strip()
+    if "\n" not in text:
+        return "", text
+    first, rest = text.split("\n", 1)
+    first, rest = first.strip(), rest.strip()
+    if first and rest and len(first) <= 140 and not first.endswith((".", ":", ";", ",")):
+        return first, rest
+    return "", text
+
+
+def paragraphs(text: str) -> List[str]:
+    return [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+
+
+def rich_blocks(post: Dict[str, Any], manifest: Dict[str, Any], photos: List[Path],
+                video_file: Optional[Path] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Tuple[str, bytes]]]:
+    """Собирает блоки rich message: медиа (слайдшоу / фото / видео), заголовок, абзацы, подвал."""
+    if len(photos) > RICH_MEDIA_LIMIT:
+        raise ValueError(f"в rich message максимум {RICH_MEDIA_LIMIT} медиа, получено {len(photos)}")
+    blocks: List[Dict[str, Any]] = []
+    files: Dict[str, Tuple[str, bytes]] = {}
+
+    def photo_block(i: int, p: Path) -> Dict[str, Any]:
+        key = f"file{i}"
+        files[key] = (p.name, p.read_bytes())
+        return {"type": "photo", "photo": {"type": "photo", "media": f"attach://{key}"}}
+
+    if video_file is not None:
+        files["video"] = (video_file.name, video_file.read_bytes())
+        files["cover"] = (photos[0].name, photos[0].read_bytes())
+        blocks.append({"type": "video", "video": {"type": "video", "media": "attach://video",
+                                                   "cover": "attach://cover", "supports_streaming": True}})
+    elif len(photos) > 1:
+        blocks.append({"type": "slideshow", "blocks": [photo_block(i, p) for i, p in enumerate(photos)]})
+    else:
+        blocks.append(photo_block(0, photos[0]))
+
+    title, body = split_title(post.get("caption", ""))
+    if title:
+        blocks.append({"type": "heading", "text": rich_text(title), "size": int(manifest.get("rich_heading_size", 4))})
+    for para in paragraphs(body):
+        blocks.append({"type": "paragraph", "text": rich_text(para)})
+    if post.get("type") == "video" and video_file is None and post.get("video", {}).get("duration"):
+        blocks.append({"type": "paragraph", "text": f"🎬 {post['video']['duration']}"})
+    footer = manifest.get("footer_md", "") if post.get("append_footer", True) else ""
+    if footer:
+        blocks.append({"type": "footer", "text": rich_text(footer)})
+    return blocks, files
+
+
+def wants_rich(post: Dict[str, Any], manifest: Dict[str, Any], caption_overflows: bool) -> bool:
+    mode = str(post.get("mode") or manifest.get("rich_mode") or "auto").lower()
+    if mode not in RICH_MODES:
+        raise ValueError(f"неизвестный rich_mode {mode!r}, допустимо: {', '.join(RICH_MODES)}")
+    if mode == "none":
+        return False
+    if mode == "all":
+        return True
+    is_carousel = post.get("type") == "carousel" or len(post.get("media", [])) > 1
+    return is_carousel or (mode == "auto" and caption_overflows)
+
+
+# ---------------------------------------------------------------------------
 # Публикация
 # ---------------------------------------------------------------------------
 def publish(tg: Telegram, chat_id: Any, post: Dict[str, Any], manifest: Dict[str, Any], assets_dir: Path,
@@ -341,13 +446,28 @@ def publish(tg: Telegram, chat_id: Any, post: Dict[str, Any], manifest: Dict[str
     files = [media_path(post, m, assets_dir) for m in post["media"]]
     caption, overflow = build_caption(post, manifest)
     kind = post["type"]
+    sent: List[Dict[str, Any]] = []
+    if wants_rich(post, manifest, overflow is not None):
+        video_file = ensure_video_file(post, assets_dir) if kind == "video" and not dry_run else None
+        blocks, attach = rich_blocks(post, manifest, files, video_file)
+        plan = f"#{post['id']} [{kind}] rich message: {len(blocks)} блок(ов), {len(attach)} файл(ов)"
+        if dry_run:
+            log.info("DRY RUN %s → %s", plan, chat_id)
+            return []
+        log.info("отправляю %s → %s", plan, chat_id)
+        try:
+            sent.append(tg.send_rich(chat_id, blocks, attach))
+            return sent
+        except TelegramError as e:
+            if e.code != 404 and "rich" not in e.description.lower():
+                raise
+            log.warning("sendRichMessage не прошёл (%s), отправляю классическим способом", e.description)
     plan = f"#{post['id']} [{kind}] {len(files)} файл(ов), подпись {len(caption or '')} симв." + (
         f", + отдельное сообщение {len(overflow)} симв." if overflow else "")
     if dry_run:
         log.info("DRY RUN %s → %s", plan, chat_id)
         return []
     log.info("отправляю %s → %s", plan, chat_id)
-    sent: List[Dict[str, Any]] = []
     if kind == "video":
         video_file = ensure_video_file(post, assets_dir)
         if video_file:
@@ -365,12 +485,17 @@ def publish(tg: Telegram, chat_id: Any, post: Dict[str, Any], manifest: Dict[str
     return sent
 
 
-def describe_post(post: Dict[str, Any], assets_dir: Optional[Path] = None) -> str:
+def describe_post(post: Dict[str, Any], assets_dir: Optional[Path] = None,
+                  manifest: Optional[Dict[str, Any]] = None) -> str:
     status = ""
     if assets_dir is not None:
         miss = missing_assets(post, assets_dir)
         status = " ✅" if not miss else f" ⛔ нет {len(miss)} файл(ов)"
-    return f"#{post['id']} [{post['type']}] {post.get('title', '')}{status}"
+    mode = ""
+    if manifest is not None:
+        _, overflow = build_caption(post, manifest)
+        mode = " · rich" if wants_rich(post, manifest, overflow is not None) else " · classic"
+    return f"#{post['id']} [{post['type']}] {post.get('title', '')}{mode}{status}"
 
 
 # ---------------------------------------------------------------------------
@@ -444,14 +569,14 @@ def cmd_check(cfg: Config, manifest: Dict[str, Any]) -> int:
             bad += 1
             print(f"⛔ #{post['id']}: нет " + ", ".join(p.name for p in miss))
         else:
-            print(f"✅ #{post['id']} [{post['type']}] {post.get('title', '')}")
+            print(describe_post(post, cfg.assets_dir, manifest))
     print(f"\n{len(manifest['posts'])} постов, без файлов: {bad}. Папка: {cfg.assets_dir}")
     return 1 if bad else 0
 
 
 def cmd_list(cfg: Config, manifest: Dict[str, Any]) -> int:
     for post in manifest["posts"]:
-        print(describe_post(post, cfg.assets_dir))
+        print(describe_post(post, cfg.assets_dir, manifest))
     return 0
 
 
@@ -541,7 +666,7 @@ def handle_command(tg: Telegram, cfg: Config, manifest: Dict[str, Any], msg: Dic
     elif cmd == "/ping":
         tg.send_message(chat_id, "pong")
     elif cmd == "/list":
-        tg.send_message(chat_id, html.escape("\n".join(describe_post(p, cfg.assets_dir) for p in manifest["posts"])))
+        tg.send_message(chat_id, html.escape("\n".join(describe_post(p, cfg.assets_dir, manifest) for p in manifest["posts"])))
     elif cmd == "/check":
         lines = []
         for p in manifest["posts"]:

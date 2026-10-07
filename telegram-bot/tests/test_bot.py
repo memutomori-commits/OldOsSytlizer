@@ -14,9 +14,10 @@ import bot  # noqa: E402
 class FakeTransport:
     """Записывает вызовы Bot API и возвращает заготовленные ответы."""
 
-    def __init__(self, fail_cover: bool = False):
+    def __init__(self, fail_cover: bool = False, fail_rich: bool = False):
         self.calls = []
         self.fail_cover = fail_cover
+        self.fail_rich = fail_rich
         self.counter = 0
 
     def __call__(self, token, method, fields, files):
@@ -24,6 +25,8 @@ class FakeTransport:
         self.counter += 1
         if method == "sendVideo" and self.fail_cover and fields.get("cover"):
             raise bot.TelegramError(method, "Bad Request: unsupported parameter cover", 400)
+        if method == "sendRichMessage" and self.fail_rich:
+            raise bot.TelegramError(method, "Not Found", 404)
         if method == "sendMediaGroup":
             return [{"message_id": self.counter + i} for i in range(len(json.loads(fields["media"]) if isinstance(fields["media"], str) else fields["media"]))]
         return {"message_id": self.counter}
@@ -31,6 +34,8 @@ class FakeTransport:
 
 MANIFEST = {
     "footer_html": "🙂Top news: <a href=\"https://t.me/clubs\">@clubs</a>",
+    "footer_md": "🙂Top news: [@clubs](https://t.me/clubs)\n[Clubs Сhat](https://t.me/clubsds) // [Clubs Market](https://t.me/clubsmarket)",
+    "rich_mode": "none",
     "posts": [
         {"id": "1", "type": "transaction", "title": "tx", "caption": "Заголовок\n\nТекст & подробности",
          "media": [{"node": "1:1", "file": "tx.png"}]},
@@ -182,6 +187,83 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("Нет доступа", tr.calls[-1][1]["text"])
         bot.handle_command(tg, cfg, MANIFEST, {"chat": {"id": 7, "type": "private"}, "from": {"id": 42}, "text": "/post 1"})
         self.assertIn("sendPhoto", [c[0] for c in tr.calls])
+
+
+class RichTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.assets = Path(self.tmp.name)
+        for post in MANIFEST["posts"]:
+            for item in post["media"]:
+                p = self.assets / post["id"] / item["file"]
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_bytes(b"\x89PNG " + item["file"].encode())
+        self.manifest = dict(MANIFEST, rich_mode="auto")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_rich_text(self):
+        self.assertEqual(bot.rich_text("plain"), "plain")
+        self.assertEqual(bot.rich_text("a **b** c"), ["a ", {"type": "bold", "text": "b"}, " c"])
+        self.assertEqual(bot.rich_text("[x](https://t.me/x)"), [{"type": "url", "text": "x", "url": "https://t.me/x"}])
+        self.assertEqual(bot.rich_text("**[x](https://t.me/x)!**"),
+                         [{"type": "bold", "text": [{"type": "url", "text": "x", "url": "https://t.me/x"}, "!"]}])
+
+    def test_split_title_and_paragraphs(self):
+        self.assertEqual(bot.split_title("Title\n\nBody\n\nMore"), ("Title", "Body\n\nMore"))
+        self.assertEqual(bot.split_title("One line only"), ("", "One line only"))
+        self.assertEqual(bot.paragraphs("A\n\nB\n \nC"), ["A", "B", "C"])
+
+    def test_rich_blocks_carousel(self):
+        post = MANIFEST["posts"][1]
+        photos = [self.assets / "2" / m["file"] for m in post["media"]]
+        blocks, files = bot.rich_blocks(post, self.manifest, photos)
+        self.assertEqual(blocks[0]["type"], "slideshow")
+        self.assertEqual([b["photo"]["media"] for b in blocks[0]["blocks"]], ["attach://file0", "attach://file1", "attach://file2"])
+        self.assertEqual(files["file0"][0], "cover.png")
+        self.assertEqual(blocks[1], {"type": "paragraph", "text": "Карусель"})
+        self.assertEqual(blocks[-1]["type"], "footer")
+        self.assertEqual(blocks[-1]["text"][1], {"type": "url", "text": "@clubs", "url": "https://t.me/clubs"})
+
+    def test_rich_blocks_single_with_heading(self):
+        post = MANIFEST["posts"][0]
+        blocks, files = bot.rich_blocks(post, self.manifest, [self.assets / "1" / "tx.png"])
+        self.assertEqual(blocks[0]["type"], "photo")
+        self.assertEqual(blocks[1], {"type": "heading", "text": "Заголовок", "size": 4})
+        self.assertEqual(blocks[2], {"type": "paragraph", "text": "Текст & подробности"})
+
+    def test_publish_carousel_goes_rich(self):
+        tr = FakeTransport()
+        sent = bot.publish(bot.Telegram("t", tr), -100, MANIFEST["posts"][1], self.manifest, self.assets)
+        self.assertEqual([c[0] for c in tr.calls], ["sendRichMessage"])
+        method, fields, files = tr.calls[0]
+        self.assertEqual(fields["rich_message"]["blocks"][0]["type"], "slideshow")
+        self.assertEqual(set(files), {"file0", "file1", "file2"})
+        self.assertEqual(len(sent), 1)
+
+    def test_auto_mode_uses_rich_for_long_caption_only(self):
+        tr = FakeTransport()
+        bot.publish(bot.Telegram("t", tr), -100, MANIFEST["posts"][3], self.manifest, self.assets)  # длинный → rich
+        bot.publish(bot.Telegram("t", tr), -100, MANIFEST["posts"][0], self.manifest, self.assets)  # короткий → классика
+        self.assertEqual([c[0] for c in tr.calls], ["sendRichMessage", "sendPhoto"])
+
+    def test_all_mode_video_block(self):
+        (self.assets / "3" / "video.mp4").write_bytes(b"mp4")
+        tr = FakeTransport()
+        bot.publish(bot.Telegram("t", tr), -100, MANIFEST["posts"][2], dict(self.manifest, rich_mode="all"), self.assets)
+        blocks = tr.calls[0][1]["rich_message"]["blocks"]
+        self.assertEqual(blocks[0]["video"]["cover"], "attach://cover")
+        self.assertEqual(set(tr.calls[0][2]), {"video", "cover"})
+
+    def test_rich_fallback_to_classic_on_404(self):
+        tr = FakeTransport(fail_rich=True)
+        bot.publish(bot.Telegram("t", tr), -100, MANIFEST["posts"][1], self.manifest, self.assets)
+        self.assertEqual([c[0] for c in tr.calls], ["sendRichMessage", "sendMediaGroup"])
+
+    def test_bad_rich_mode_rejected(self):
+        with self.assertRaises(ValueError):
+            bot.wants_rich(MANIFEST["posts"][0], dict(self.manifest, rich_mode="weird"), False)
 
 
 if __name__ == "__main__":
