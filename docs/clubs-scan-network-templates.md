@@ -1,22 +1,26 @@
-# Clubs Scan — шаблоны по сетям (EVM, SOL)
+# Clubs Scan — шаблоны по сетям
 
-Файл Figma `clubs_main`, страница **CLUBS / TEST**. Исходные два фрейма (ETH-кошелёк и
-TRON-транзакция) — это шаблон; из них клонами собраны ещё четыре фрейма, по два на сеть.
-Все фреймы 2079×1740, стоят в ряд с шагом 2111 px по X на y = −3799.
+Файл Figma `clubs_main`. Все готовые фреймы собраны на странице **CLUBS / MAIN 2** в секциях
+по сетям (черновики и исходники остались на CLUBS / TEST). Фреймы 2079×1740, внутри секций
+в ряд с отступом 160, секции с шагом 320 по вертикали.
 
-| № | Фрейм (имя слоя) | node id | x | Сид Desktop Scatter |
-|---|------------------|---------|---|---------------------|
-| 01 | Wallet_Test (brick) / 01 Clubs Scan — Wallet Overview (ETH, исходник) | `490:1758` | 18904 | 420 |
-| 02 | Transaction_Test (brick) / 02 Clubs Scan — Transaction Detail (TRON, исходник) | `498:1957` | 21015 | 420 |
-| 03 | Wallet_Test (brick) / 03 Clubs Scan — Wallet Overview · EVM | `547:4485` | 23126 | 421 |
-| 04 | Transaction_Test (brick) / 04 Clubs Scan — Transaction Detail · EVM | `548:4684` | 25237 | 422 |
-| 05 | Wallet_Test (brick) / 05 Clubs Scan — Wallet Overview · SOL | `549:4902` | 27348 | 423 |
-| 06 | Transaction_Test (brick) / 06 Clubs Scan — Transaction Detail · SOL | `550:5101` | 29459 | 424 |
-| 07 | Transaction_Test (brick) / 07 Clubs Scan — Transaction Detail · EVM · Polygon swap | `565:5319` | 31570 | 425 |
-| 08 | Wallet_Test (brick) / 08 Clubs Scan — Wallet Overview · BTC | `601:5846` | 32052 | 426 |
-| 09 | Transaction_Test (brick) / 09 Clubs Scan — Transaction Detail · BTC | `600:5628` | 34227 | 427 |
-| 10 | Wallet_Test (brick) / 10 Clubs Scan — Wallet Overview · TRX | `607:6263` | 36402 | 428 |
-| 11 | Transaction_Test (brick) / 11 Clubs Scan — Transaction Detail · TRX | `606:6045` | 38577 | 429 |
+| Секция | Фрейм (имя слоя) | node id | Сид Desktop Scatter |
+|--------|------------------|---------|---------------------|
+| 00 · README | текст с картой страницы и палитрой | `615:2` | — |
+| 01 · Ethereum | Clubs Scan / 01 ETH — Wallet Overview (brick) | `490:1758` | 420 |
+| 01 · Ethereum | Clubs Scan / 03 ETH — Wallet Overview · EVM victim (brick) | `547:4485` | 421 |
+| 01 · Ethereum | Clubs Scan / 04 ETH — Transaction Detail (brick), эталон раскладки | `548:4684` | 422 |
+| 02 · Solana | Clubs Scan / 05 SOL — Wallet Overview (brick) | `549:4902` | 423 |
+| 02 · Solana | Clubs Scan / 06 SOL — Transaction Detail (brick) | `550:5101` | 424 |
+| 03 · DAI on Polygon | Clubs Scan / 07 DAI — Transaction Detail · Polygon swap (brick) | `565:5319` | 425 |
+| 04 · Bitcoin | Clubs Scan / 08 BTC — Wallet Overview (brick) | `601:5846` | 426 |
+| 04 · Bitcoin | Clubs Scan / 09 BTC — Transaction Detail (brick) | `600:5628` | 427 |
+| 05 · TRON | Clubs Scan / 10 TRX — Wallet Overview (brick) | `607:6263` | 428 |
+| 05 · TRON | Clubs Scan / 11 TRX — Transaction Detail (brick) | `606:6045` | 429 |
+| 06 · Desktop Cascade | Transaction Detail — Desktop Cascade (brick) | `584:5539` | 5 |
+| 07 · Carousel Cover | Carousel Cover / Win95 Alert — Tectonic (brick) | `611:2328` | — |
+
+Фрейм 02 (TRON-исходник) удалён пользователем; его данные живут в 10 и 11.
 
 ## Что откуда
 
