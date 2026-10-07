@@ -24,7 +24,7 @@
 | 09 · Video Post | Video Post / Win98 Windows Media Player (brick) — заглушка под видео, 1863×1290 | `617:15391` | — |
 | 10 · Dossier | Dossier / Katerini Crypto (2026-10) — Arrest Dossier (brick): поля Name / Alias / Case / Charges / Amount / Arrested / Status / Max sentence, кнопка COPY в тулбаре | `534:4448` | — |
 | 11 · Transactions Finding | Transactions Finding / 01…06 — шесть ранних вариантов Transaction Detail и Wallet Overview (поиск формы), группы обёрнуты во фреймы | `625:6449` | — |
-| 12 · News Post — Paint | News Post / Paint — arrest (1454×1454): Paint brick с фото, ворон в тайтл-баре, подписи CLUBS в статус-баре, стол с ярлыками, таскбар, Notepad, Processing, слой Dither | `634:4526` | 7 |
+| 12 · One Image Post | One Image Post / Paint — arrest (1454×1454): Paint brick с фото, ворон в тайтл-баре, подписи CLUBS в статус-баре, стол с ярлыками, таскбар, Notepad, Processing, слой Dither | `634:4526` | 7 |
 
 Фрейм 02 (TRON-исходник) удалён пользователем; его данные живут в 10 и 11.
 
