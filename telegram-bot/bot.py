@@ -4,6 +4,7 @@
 Без внешних зависимостей: только стандартная библиотека Python 3.9+.
 
 Режимы:
+  python bot.py import <папка>        разложить PNG, экспортированные из Figma, по assets/<id>/
   python bot.py check                 проверить posts.json и наличие PNG в assets/
   python bot.py list                  список постов из posts.json
   python bot.py post <id|all> [--dry-run] [--delay 3]
@@ -22,6 +23,8 @@ import json
 import logging
 import mimetypes
 import os
+import re
+import shutil
 import sys
 import time
 import urllib.error
@@ -347,6 +350,66 @@ def describe_post(post: Dict[str, Any], assets_dir: Optional[Path] = None) -> st
 
 
 # ---------------------------------------------------------------------------
+# Импорт PNG, экспортированных из Figma
+# ---------------------------------------------------------------------------
+POST_ID_RE = re.compile(r"#(\d+)")
+SLIDE_RE = re.compile(r"[—–-]\s*0*(\d+)\s*$")
+SCALE_RE = re.compile(r"@\d+x$")
+
+
+def match_export(path: Path, manifest: Dict[str, Any]) -> Optional[Tuple[Dict[str, Any], str]]:
+    """По имени экспортированного файла находит пост и целевое имя из posts.json.
+
+    Figma называет файлы по имени фрейма («Carousel Post / #152 Explorer — 02.png»,
+    при экспорте слэши становятся папками). Номер поста берётся из «#152»,
+    номер слайда — из «— 02», обложка — по слову Cover."""
+    stem = SCALE_RE.sub("", path.stem).strip()
+    m = POST_ID_RE.search(stem) or POST_ID_RE.search(str(path.parent))
+    if not m:
+        return None
+    try:
+        post = find_post(manifest, m.group(1))
+    except KeyError:
+        return None
+    media = post["media"]
+    if len(media) == 1:
+        return post, media[0]["file"]
+    full = (str(path.parent) + " " + stem).lower()
+    slide = SLIDE_RE.search(stem)
+    if "cover" in full and not slide:
+        return post, media[0]["file"]
+    if slide:
+        k = int(slide.group(1))
+        if 1 <= k < len(media):
+            return post, media[k]["file"]
+    return None
+
+
+def cmd_import(cfg: Config, manifest: Dict[str, Any], folder: Path) -> int:
+    if not folder.is_dir():
+        sys.exit(f"папка не найдена: {folder}")
+    files = sorted(p for p in folder.rglob("*") if p.suffix.lower() in (".png", ".jpg", ".jpeg"))
+    if not files:
+        sys.exit(f"в {folder} нет PNG/JPG")
+    copied, skipped = 0, []
+    for src in files:
+        hit = match_export(src, manifest)
+        if not hit:
+            skipped.append(src.name)
+            continue
+        post, filename = hit
+        dst = cfg.assets_dir / str(post["id"]) / filename
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+        copied += 1
+        print(f"✅ {src.name}  →  {dst.relative_to(cfg.assets_dir)}")
+    for name in skipped:
+        print(f"⚠ пропущен (не нашёл #id или номер слайда): {name}")
+    print(f"\nСкопировано: {copied}, пропущено: {len(skipped)}. Теперь: python bot.py check")
+    return 0 if copied else 1
+
+
+# ---------------------------------------------------------------------------
 # CLI-команды
 # ---------------------------------------------------------------------------
 def cmd_check(cfg: Config, manifest: Dict[str, Any]) -> int:
@@ -521,6 +584,8 @@ def cmd_serve(cfg: Config, manifest: Dict[str, Any]) -> int:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Clubs News — публикация оформленных постов в Telegram")
     sub = parser.add_subparsers(dest="cmd", required=True)
+    p_imp = sub.add_parser("import", help="разложить PNG из Figma по assets/<id>/")
+    p_imp.add_argument("folder", help="папка с экспортом из Figma (ищется рекурсивно)")
     sub.add_parser("check")
     sub.add_parser("list")
     p_post = sub.add_parser("post")
@@ -536,6 +601,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "discover":
         return cmd_discover(cfg)
     manifest = load_manifest(cfg.posts_file)
+    if args.cmd == "import":
+        return cmd_import(cfg, manifest, Path(args.folder))
     if args.cmd == "check":
         return cmd_check(cfg, manifest)
     if args.cmd == "list":

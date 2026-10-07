@@ -186,3 +186,49 @@ class ManifestTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ImportTests(unittest.TestCase):
+    """bot.py import: раскладка файлов, экспортированных из Figma, по assets/<id>/."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.export = self.root / "export"
+        names = [
+            "Clubs Scan/#1 ETH — Across exploiter refunds 331.84 ETH.png",
+            "Carousel Cover/#2 — Italian police bust fake €2 coin ring.png",
+            "Carousel Post/#2 Explorer — 01.png",
+            "Carousel Post/#2 Explorer — 02@2x.png",
+            "Video Post/#3 — Batman (2:05).png",
+            "Dossier/#999 — unknown post.png",
+            "notes.txt",
+        ]
+        for n in names:
+            f = self.export / n
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_bytes(b"png")
+        self.cfg = bot.Config()
+        self.cfg.assets_dir = self.root / "assets"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_match_export(self):
+        post, name = bot.match_export(self.export / "Carousel Post/#2 Explorer — 02@2x.png", MANIFEST)
+        self.assertEqual((post["id"], name), ("2", "s2.png"))
+        post, name = bot.match_export(self.export / "Carousel Cover/#2 — Italian police bust fake €2 coin ring.png", MANIFEST)
+        self.assertEqual((post["id"], name), ("2", "cover.png"))
+        self.assertIsNone(bot.match_export(self.export / "Dossier/#999 — unknown post.png", MANIFEST))
+        self.assertIsNone(bot.match_export(Path("random.png"), MANIFEST))
+
+    def test_cmd_import_places_files(self):
+        rc = bot.cmd_import(self.cfg, MANIFEST, self.export)
+        self.assertEqual(rc, 0)
+        self.assertTrue((self.cfg.assets_dir / "1" / "tx.png").exists())
+        self.assertTrue((self.cfg.assets_dir / "2" / "cover.png").exists())
+        self.assertTrue((self.cfg.assets_dir / "2" / "s1.png").exists())
+        self.assertTrue((self.cfg.assets_dir / "2" / "s2.png").exists())
+        self.assertTrue((self.cfg.assets_dir / "3" / "cover.png").exists())
+        self.assertFalse((self.cfg.assets_dir / "999").exists())
+        self.assertEqual(bot.missing_assets(MANIFEST["posts"][1], self.cfg.assets_dir), [])

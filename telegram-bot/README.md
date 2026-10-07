@@ -29,7 +29,9 @@ Python 3.9+, без зависимостей.
    командой `/chatid` (в режиме `serve`).
 
 4. Положите PNG-фреймы в `assets/<id>/<file>` (имена — в `posts.json`). Два способа:
-   - **вручную**: в Figma выделить фреймы секций 01–06 на странице TELEGRAM READY → Export PNG 1x;
+   - **вручную**: в Figma выделить фреймы секций 01–06 на странице TELEGRAM READY → Export PNG 1x
+     в пустую папку, затем `python bot.py import <папка>` разложит файлы по `assets/` сам
+     (номер поста берётся из `#253` в имени файла, слайды из `— 02`, обложка по слову Cover);
    - **через REST**: `FIGMA_TOKEN=... python export_figma.py` (id фреймов уже прописаны в `posts.json`).
      Внимание: шрифты PP Mondwest / PP NeueBit локальные, облачный рендер может их подменить —
      сверьте результат с тем, что видно в Figma Desktop.
@@ -37,6 +39,7 @@ Python 3.9+, без зависимостей.
 5. Проверка и публикация:
 
    ```bash
+   python bot.py import ~/Downloads/clubs_export   # разложить экспорт из Figma по assets/
    python bot.py check              # все ли файлы на месте
    python bot.py post 253 --dry-run # план без отправки
    python bot.py post 253           # один пост
@@ -92,6 +95,8 @@ Python 3.9+, без зависимостей.
 | Репосты из твиттера | #294, #206, #345, #93 |
 
 Данные транзакций взяты с цепочек (публичные RPC, mempool.space, TronGrid), тексты — из постов канала.
+
+Полная пошаговая инструкция от создания бота до первого поста: [SETUP.md](SETUP.md).
 
 ## Тесты
 
