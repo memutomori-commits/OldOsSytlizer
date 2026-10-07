@@ -110,3 +110,13 @@ USDT TRC-20, OWNER TBUhr4R4…, bait TSdu6x…). Цвета взяты с «Tran
 Кирпичи на CLUBS / SKILL TEST: `Win95 / Paint (brick) — free resize` (629:91, 648×600, из Notepad brick) и
 компонент-сет `Win95 / Paint Tool Icon (pixel)` (632:466) — 16 пиксельных иконок инструментов 16×16,
 плейсхолдеры, variant Tool.
+
+## Шейдер Palette Swatches (эффект)
+
+Палитра в Paint подстраивается под картинку: рамка свотчей несёт ту же image-заливку, что холст,
+а шейдер-эффект `Palette Swatches` (библиотека аккаунта, id `1e03d724-82c7-433c-8582-5171995e2f40`)
+делит картинку на cols×rows участков, усредняет цвет каждого и рисует ячейки с зазором и рамкой.
+Параметры: Columns, Rows, Order (Sorted by luminance — тёмный ряд сверху, светлый снизу, как в Win95 /
+Image order), Saturation, Gap, Border, Border color, Samples per cell. При замене фото нужно
+заменить заливку и в холсте, и в слое `Swatches — Palette Swatches shader`.
+Применение из плагина: `figma.importShaderById('<id>/<version>')`, затем effects `{ type: 'SHADER', id, properties }`.
