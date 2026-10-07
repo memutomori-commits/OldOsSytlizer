@@ -113,10 +113,16 @@ USDT TRC-20, OWNER TBUhr4R4…, bait TSdu6x…). Цвета взяты с «Tran
 
 ## Шейдер Palette Swatches (эффект)
 
-Палитра в Paint подстраивается под картинку: рамка свотчей несёт ту же image-заливку, что холст,
-а шейдер-эффект `Palette Swatches` (библиотека аккаунта, id `1e03d724-82c7-433c-8582-5171995e2f40`)
-делит картинку на cols×rows участков, усредняет цвет каждого и рисует ячейки с зазором и рамкой.
-Параметры: Columns, Rows, Order (Sorted by luminance — тёмный ряд сверху, светлый снизу, как в Win95 /
-Image order), Saturation, Gap, Border, Border color, Samples per cell. При замене фото нужно
-заменить заливку и в холсте, и в слое `Swatches — Palette Swatches shader`.
-Применение из плагина: `figma.importShaderById('<id>/<version>')`, затем effects `{ type: 'SHADER', id, properties }`.
+Палитра в Paint подстраивается под картинку холста автоматически. Схема: холст — мастер-компонент
+`Canvas — REPLACE IMAGE HERE (main component, drives the palette)`, а в рамке свотчей лежит его
+инстанс `Canvas instance — sampled by Palette Swatches`, уменьшенный по ширине полосы, с шейдер-эффектом
+`Palette Swatches` (библиотека аккаунта, id `1e03d724-82c7-433c-8582-5171995e2f40`). Шейдер усредняет
+cols×rows участков всей картинки и рисует ячейки в верхних Strip height px слоя; рамка свотчей обрезает
+остальное. Параметры: Columns, Rows, Strip height, Order (Sorted by luminance — тёмный ряд сверху,
+светлый снизу / Image order), Saturation, Gap, Border, Border color, Samples per cell.
+
+Как менять картинку: выделить холст и заменить **заливку** (Fill → Image → Choose image, или
+перетащить файл на слой). Плагины, которые вставляют новый слой вместо холста, рвут связь — тогда
+инстанс в палитре нужно пересоздать из нового компонента.
+Применение из плагина: `figma.importShaderById('<id>/<version>')`, затем effects
+`{ type: 'SHADER', id, properties }`; ключи properties берутся из `propertyDefinitions` импорта.
