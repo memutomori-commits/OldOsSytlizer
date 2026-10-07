@@ -22,6 +22,7 @@
 | 08 · Carousel Post | Carousel Post / Explorer — 01…04 (окно Clubs Explorer, 1365×1367) | бывшая группа ONE IMAGE POST v2 | — |
 | 08 · Carousel Post | Carousel Post / Help Topics — 01…04 (окно clubs system image view, 1454×1454) | бывшая группа ONE IMAGE POST v1 | — |
 | 09 · Video Post | Video Post / Win98 Windows Media Player (brick) — заглушка под видео, 1863×1290 | `617:15391` | — |
+| 10 · Dossier | Dossier / Katerini Crypto (2026-10) — Arrest Dossier (brick): поля Name / Alias / Case / Charges / Amount / Arrested / Status / Max sentence, кнопка COPY в тулбаре | `534:4448` | — |
 
 Фрейм 02 (TRON-исходник) удалён пользователем; его данные живут в 10 и 11.
 
