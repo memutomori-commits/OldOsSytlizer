@@ -158,11 +158,11 @@ cols×rows участков всей картинки и рисует ячейк
 одиночные пиксели убраны, каждый цвет — отдельный слой `Ink — <цвет>` поверх `Background — black`.
 Файл: `docs/assets/detective-smoking-cga.svg`.
 
-`Clubs Scan / 11 TRX — Transaction Detail (brick) — transaction action` (882:7633, 2079×~2400) — перевёрстка
+`Clubs Scan / 11 TRX — Transaction Detail (brick) — transaction action` (882:7633, 2079×1169, 16:9) — перевёрстка
 референса «Transaction Action» (розовый дашборд) в стиль Clubs Scan: красный стол, шапка CLUBS SCAN с
 подзаголовком и двумя плашками NETWORK / INVESTIGATION FOCUS, три окна Win95 — TRANSACTION OVERVIEW
-(сумма Doto + адреса со стрелкой, карточки STATUS / BLOCK / TIMESTAMP), TRANSACTION FLOW (клон окна
-пользователя из «copy transfer») и TRANSACTION DETAILS (хеш на всю ширину, карточка TOKEN / AMOUNT и
+(сумма Doto + адреса со стрелкой, карточки STATUS / BLOCK / TIMESTAMP), TRANSACTION FLOW (три карточки FROM → TOKEN TRANSFER → TO с
+пиксельными стрелками и иконками компьютеров, как в референсе) и TRANSACTION DETAILS (хеш на всю ширину, карточка TOKEN / AMOUNT и
 список ключ–значение с тегами), футер с тегом EVIDENCE FROM TRONSCAN. Стек окон — вертикальный
-авто-лейаут `Content — windows stack` (паддинг 60, gap 24), все окна FILL по ширине и HUG по высоте,
-кроме Flow (фиксированный клон).
+авто-лейаут `Content — windows stack` (паддинг 60, gap 24), все окна FILL по ширине и HUG по высоте; остаток до 1169 уходит в
+вертикальный паддинг стека.
