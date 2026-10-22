@@ -201,6 +201,7 @@ export function render(device, frame) {
     { name: "Mono terminal", values: { pattern: 2, pixelSize: 3, softness: 0.4, pitch: 4, tint: 0.3, gapWidth: 0.15, gapDark: 0.5, scanlines: 0.4, scanPitch: 3, fringe: 0, glow: 0.7, glowRadius: 10, gain: 1.4, curvature: 0.2, vignette: 0.3, strength: 1 } },
     { name: "Old TV", values: { pattern: 0, pixelSize: 8, softness: 0.9, pitch: 12, tint: 0.5, gapWidth: 0.3, gapDark: 0.6, scanlines: 0.25, scanPitch: 8, fringe: 4, glow: 0.5, glowRadius: 12, gain: 1.25, curvature: 0.6, vignette: 0.5, strength: 1 } },
     { name: "Subtle", values: { pattern: 0, pixelSize: 1, softness: 1, pitch: 3, tint: 0.3, gapWidth: 0.1, gapDark: 0.3, scanlines: 0.08, scanPitch: 2, fringe: 0.5, glow: 0.2, glowRadius: 4, gain: 1.15, curvature: 0, vignette: 0.1, strength: 1 } },
+    { name: "Clubs", values: { pattern: 0, pixelSize: 11, softness: 0, pitch: 8, tint: 0.62, gapWidth: 0.09, gapDark: 0.6, scanlines: 0.31, scanPitch: 4, fringe: 1.5, glow: 0.87, glowRadius: 1, gain: 1.35, curvature: 0, vignette: 0.25, strength: 1 } },
   ]
   // PRESETS-END
 
@@ -254,6 +255,7 @@ defineProperties(Effect, {
     { label: "Mono terminal", value: 3 },
     { label: "Old TV", value: 4 },
     { label: "Subtle", value: 5 },
+    { label: "Clubs", value: 6 },
   ] },
   // PRESET-OPTIONS-END
   pattern: { type: 'number', label: 'Grille', defaultValue: 0, control: 'select', options: [

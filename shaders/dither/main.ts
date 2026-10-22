@@ -176,6 +176,7 @@ export function render(device, frame) {
     { name: "Newspaper", values: { algorithm: 5, mode: 2, cellSize: 4, levels: 2, strength: 1, angle: 45 } },
     { name: "Film grain", values: { algorithm: 4, mode: 1, cellSize: 1, levels: 6, strength: 0.8, angle: 0 } },
     { name: "Amber terminal", values: { algorithm: 3, mode: 3, cellSize: 2, levels: 4, strength: 1, angle: 0, dark: {"r":0.10196078431372549,"g":0.054901960784313725,"b":0,"a":1}, light: {"r":1,"g":0.6901960784313725,"b":0,"a":1} } },
+    { name: "Clubs", values: { algorithm: 1, mode: 0, cellSize: 2, levels: 4, strength: 1, angle: 0, dark: {"r":0.058823529411764705,"g":0.10196078431372549,"b":0.2,"a":1}, light: {"r":0.9490196078431372,"g":0.9490196078431372,"b":0.8784313725490196,"a":1} } },
   ]
   // PRESETS-END
 
@@ -230,6 +231,7 @@ defineProperties(Effect, {
     { label: "Newspaper", value: 4 },
     { label: "Film grain", value: 5 },
     { label: "Amber terminal", value: 6 },
+    { label: "Clubs", value: 7 },
   ] },
   // PRESET-OPTIONS-END
   algorithm: { type: 'number', label: 'Algorithm', defaultValue: 1, control: 'select', options: [
