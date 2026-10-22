@@ -156,21 +156,25 @@ fn softPixel(p: vec2f, cell: f32, soft: f32, dims: vec2f) -> vec4f {
 export function render(device, frame) {
   var p = frame.params || {}
 
-  // Собирает итоговые значения параметров: слайдеры -> выбранный пресет -> «Preset code».
+  // Собирает итоговые значения параметров. Приоритет: «Preset code» -> сдвинутый слайдер -> пресет -> слайдер.
+  // Слайдер считается сдвинутым, если его значение отличается от дефолта: так пресет можно донастраивать.
+  // Чтобы вернуть параметру значение из пресета, поставьте слайдер обратно на дефолт.
   // Код пресета: пары `ключ=значение` через запятую, точку с запятой или перенос строки,
   // например `algorithm=2, levels=3, cellSize=4, dark=#0F380F`. Ключи без учёта регистра.
-  var resolveParams = function (p, presetList, keys) {
+  var resolveParams = function (p, presetList, defaults) {
     var num = function (v, d) { var n = Number(v); return Number.isFinite(n) ? n : d }
-    var ov = {}
+    var keys = Object.keys(defaults)
+    var preset = {}
     var sel = Math.round(num(p.preset, 0))
     if (sel > 0 && presetList[sel - 1]) {
       var pv = presetList[sel - 1].values
-      for (var k in pv) ov[k] = pv[k]
+      for (var k in pv) preset[k] = pv[k]
     }
+    var code = {}
     var byLower = {}
     for (var i = 0; i < keys.length; i++) byLower[keys[i].toLowerCase()] = keys[i]
-    var code = String(p.presetCode == null ? '' : p.presetCode)
-    var parts = code.split(/[,;\n]+/)
+    var text = String(p.presetCode == null ? '' : p.presetCode)
+    var parts = text.split(/[,;\n]+/)
     for (var j = 0; j < parts.length; j++) {
       var m = /^\s*([A-Za-z]+)\s*[=:]\s*(#[0-9A-Fa-f]{6}|-?[0-9]*\.?[0-9]+)\s*$/.exec(parts[j])
       if (!m) continue
@@ -179,17 +183,33 @@ export function render(device, frame) {
       var raw = m[2]
       if (raw.charAt(0) === '#') {
         var n = parseInt(raw.slice(1), 16)
-        ov[key] = { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255, a: 1 }
+        code[key] = { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255, a: 1 }
       } else {
-        ov[key] = Number(raw)
+        code[key] = Number(raw)
       }
     }
+    var isDefault = function (k) {
+      var d = defaults[k]
+      var v = p[k]
+      if (v == null) return true
+      if (typeof d === 'object') {
+        if (typeof v !== 'object') return true
+        return Math.abs(num(v.r, d.r) - d.r) < 0.002 && Math.abs(num(v.g, d.g) - d.g) < 0.002 && Math.abs(num(v.b, d.b) - d.b) < 0.002
+      }
+      return Math.abs(num(v, d) - d) < 0.0005
+    }
+    var pick = function (k) {
+      if (code[k] !== undefined) return code[k]
+      if (preset[k] !== undefined && isDefault(k)) return preset[k]
+      return p[k]
+    }
     return {
-      num: function (k, d) { return num(ov[k] !== undefined ? ov[k] : p[k], d) },
-      color: function (k, dr, dg, db) {
-        var c = ov[k] !== undefined ? ov[k] : p[k]
+      num: function (k) { return num(pick(k), defaults[k]) },
+      color: function (k) {
+        var d = defaults[k]
+        var c = pick(k)
         if (c == null || typeof c !== 'object') c = {}
-        return [num(c.r, dr), num(c.g, dg), num(c.b, db), 1]
+        return [num(c.r, d.r), num(c.g, d.g), num(c.b, d.b), 1]
       },
     }
   }
@@ -205,15 +225,18 @@ export function render(device, frame) {
   ]
   // PRESETS-END
 
-  var v = resolveParams(p, presetList, ['pattern', 'pixelSize', 'softness', 'pitch', 'tint', 'gapWidth', 'gapDark',
-    'scanlines', 'scanPitch', 'fringe', 'glow', 'glowRadius', 'gain', 'curvature', 'vignette', 'strength'])
+  // Дефолты должны совпадать с defaultValue в defineProperties ниже.
+  var v = resolveParams(p, presetList, {
+    pattern: 0, pixelSize: 4, softness: 0.6, pitch: 6, tint: 0.7, gapWidth: 0.25, gapDark: 0.6,
+    scanlines: 0.15, scanPitch: 4, fringe: 1.5, glow: 0.4, glowRadius: 6, gain: 1.35, curvature: 0.15, vignette: 0.25, strength: 1,
+  })
 
   device.queue.writeBuffer(frame.state.uniforms, 0, new Float32Array([
-    frame.output.width, frame.output.height, v.num('pixelSize', 4), v.num('softness', 0.6),
-    v.num('pitch', 6), v.num('tint', 0.7), v.num('gapWidth', 0.25), v.num('gapDark', 0.6),
-    v.num('scanPitch', 4), v.num('scanlines', 0.15), v.num('fringe', 1.5), v.num('gain', 1.35),
-    v.num('strength', 1), v.num('pattern', 0), 0, 0,
-    v.num('curvature', 0.15), v.num('vignette', 0.25), v.num('glow', 0.4), v.num('glowRadius', 6),
+    frame.output.width, frame.output.height, v.num('pixelSize'), v.num('softness'),
+    v.num('pitch'), v.num('tint'), v.num('gapWidth'), v.num('gapDark'),
+    v.num('scanPitch'), v.num('scanlines'), v.num('fringe'), v.num('gain'),
+    v.num('strength'), v.num('pattern'), 0, 0,
+    v.num('curvature'), v.num('vignette'), v.num('glow'), v.num('glowRadius'),
   ]))
 
   var inputView = frame.input != null ? frame.input.createView() : frame.state.placeholder.createView()

@@ -130,21 +130,25 @@ fn ign(p: vec2f) -> f32 {
 export function render(device, frame) {
   var p = frame.params || {}
 
-  // Собирает итоговые значения параметров: слайдеры -> выбранный пресет -> «Preset code».
+  // Собирает итоговые значения параметров. Приоритет: «Preset code» -> сдвинутый слайдер -> пресет -> слайдер.
+  // Слайдер считается сдвинутым, если его значение отличается от дефолта: так пресет можно донастраивать.
+  // Чтобы вернуть параметру значение из пресета, поставьте слайдер обратно на дефолт.
   // Код пресета: пары `ключ=значение` через запятую, точку с запятой или перенос строки,
   // например `algorithm=2, levels=3, cellSize=4, dark=#0F380F`. Ключи без учёта регистра.
-  var resolveParams = function (p, presetList, keys) {
+  var resolveParams = function (p, presetList, defaults) {
     var num = function (v, d) { var n = Number(v); return Number.isFinite(n) ? n : d }
-    var ov = {}
+    var keys = Object.keys(defaults)
+    var preset = {}
     var sel = Math.round(num(p.preset, 0))
     if (sel > 0 && presetList[sel - 1]) {
       var pv = presetList[sel - 1].values
-      for (var k in pv) ov[k] = pv[k]
+      for (var k in pv) preset[k] = pv[k]
     }
+    var code = {}
     var byLower = {}
     for (var i = 0; i < keys.length; i++) byLower[keys[i].toLowerCase()] = keys[i]
-    var code = String(p.presetCode == null ? '' : p.presetCode)
-    var parts = code.split(/[,;\n]+/)
+    var text = String(p.presetCode == null ? '' : p.presetCode)
+    var parts = text.split(/[,;\n]+/)
     for (var j = 0; j < parts.length; j++) {
       var m = /^\s*([A-Za-z]+)\s*[=:]\s*(#[0-9A-Fa-f]{6}|-?[0-9]*\.?[0-9]+)\s*$/.exec(parts[j])
       if (!m) continue
@@ -153,17 +157,33 @@ export function render(device, frame) {
       var raw = m[2]
       if (raw.charAt(0) === '#') {
         var n = parseInt(raw.slice(1), 16)
-        ov[key] = { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255, a: 1 }
+        code[key] = { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255, a: 1 }
       } else {
-        ov[key] = Number(raw)
+        code[key] = Number(raw)
       }
     }
+    var isDefault = function (k) {
+      var d = defaults[k]
+      var v = p[k]
+      if (v == null) return true
+      if (typeof d === 'object') {
+        if (typeof v !== 'object') return true
+        return Math.abs(num(v.r, d.r) - d.r) < 0.002 && Math.abs(num(v.g, d.g) - d.g) < 0.002 && Math.abs(num(v.b, d.b) - d.b) < 0.002
+      }
+      return Math.abs(num(v, d) - d) < 0.0005
+    }
+    var pick = function (k) {
+      if (code[k] !== undefined) return code[k]
+      if (preset[k] !== undefined && isDefault(k)) return preset[k]
+      return p[k]
+    }
     return {
-      num: function (k, d) { return num(ov[k] !== undefined ? ov[k] : p[k], d) },
-      color: function (k, dr, dg, db) {
-        var c = ov[k] !== undefined ? ov[k] : p[k]
+      num: function (k) { return num(pick(k), defaults[k]) },
+      color: function (k) {
+        var d = defaults[k]
+        var c = pick(k)
         if (c == null || typeof c !== 'object') c = {}
-        return [num(c.r, dr), num(c.g, dg), num(c.b, db), 1]
+        return [num(c.r, d.r), num(c.g, d.g), num(c.b, d.b), 1]
       },
     }
   }
@@ -180,13 +200,17 @@ export function render(device, frame) {
   ]
   // PRESETS-END
 
-  var v = resolveParams(p, presetList, ['algorithm', 'mode', 'cellSize', 'levels', 'strength', 'angle', 'dark', 'light'])
-  var dark = v.color('dark', 0.06, 0.1, 0.2)
-  var light = v.color('light', 0.95, 0.95, 0.88)
+  // Дефолты должны совпадать с defaultValue в defineProperties ниже.
+  var v = resolveParams(p, presetList, {
+    algorithm: 1, mode: 0, cellSize: 2, levels: 4, strength: 1, angle: 0,
+    dark: { r: 0.06, g: 0.1, b: 0.2 }, light: { r: 0.95, g: 0.95, b: 0.88 },
+  })
+  var dark = v.color('dark')
+  var light = v.color('light')
 
   device.queue.writeBuffer(frame.state.uniforms, 0, new Float32Array([
-    frame.output.width, frame.output.height, v.num('cellSize', 2), v.num('levels', 4),
-    v.num('strength', 1), v.num('mode', 0), v.num('algorithm', 1), v.num('angle', 0) * Math.PI / 180,
+    frame.output.width, frame.output.height, v.num('cellSize'), v.num('levels'),
+    v.num('strength'), v.num('mode'), v.num('algorithm'), v.num('angle') * Math.PI / 180,
     dark[0], dark[1], dark[2], 1,
     light[0], light[1], light[2], 1,
   ]))
