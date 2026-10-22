@@ -26,3 +26,22 @@ TypeScript и прогоняет ESLint (`@ts-nocheck` запрещён), поэ
 Если файлов репозитория у тебя нет, возьми их из GitHub:
 - https://raw.githubusercontent.com/memutomori-commits/OldOsSytlizer/claude/figma-retro-bevel-plugin-d0x6g2/code.ts
 - https://raw.githubusercontent.com/memutomori-commits/OldOsSytlizer/claude/figma-retro-bevel-plugin-d0x6g2/ui.html
+
+---
+
+# Промт: установить Window Frame через Figma MCP
+
+Тот же порядок, что и для Retro Bevel, с подстановками:
+
+- имя плагина `Window Frame`, description `Превращает выделенный прямоугольник в адаптивное окно-рамку: бевель, плашка с редактируемым заголовком, кнопки ? и X, прозрачная середина`;
+- файлы `window-frame/code.ts` и `window-frame/ui.html` без изменений;
+- commitMessage `Window Frame: adaptive Win-style highlight window from a rectangle`.
+
+Что должно получиться: панель 300×262 в стиле Win95 с полями «Заголовок», «Пиксель, px»,
+галками «?» и «X», превью окна и кнопкой «Собрать»; пока не выделен прямоугольник,
+кнопка неактивна и внизу подсказка «Выделите прямоугольник». «Собрать» заменяет каждый
+выделенный прямоугольник окном того же размера и положения.
+
+Если файлов репозитория у тебя нет, возьми их из GitHub:
+- https://raw.githubusercontent.com/memutomori-commits/OldOsSytlizer/claude/project-thread-a4uem9/window-frame/code.ts
+- https://raw.githubusercontent.com/memutomori-commits/OldOsSytlizer/claude/project-thread-a4uem9/window-frame/ui.html
