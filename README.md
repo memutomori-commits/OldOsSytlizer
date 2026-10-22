@@ -63,3 +63,8 @@
     npm run build
 
 Это только `tsc` без бандлера. `ui.html` — обычный HTML без зависимостей.
+
+## Шейдеры Dither и CRT Display
+
+Исходники шейдер-эффектов из библиотеки Figma и их пресеты лежат в `shaders/`,
+см. [shaders/README.md](shaders/README.md).
