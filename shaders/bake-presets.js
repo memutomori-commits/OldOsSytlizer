@@ -1,4 +1,4 @@
-// Вшивает пресеты из presets.json в main.ts обоих шейдеров.
+// Вшивает пресеты из presets.json в main.ts обоих шейдеров и в плагин Shader Presets.
 // Запуск: node shaders/bake-presets.js
 // Правит только текст между маркерами PRESETS-BEGIN / PRESETS-END.
 'use strict'
@@ -45,3 +45,22 @@ function bake(file, list) {
 
 bake(path.join(root, 'dither', 'main.ts'), presets.dither)
 bake(path.join(root, 'crt', 'main.ts'), presets.crt)
+
+// Плагин Shader Presets держит ту же таблицу, чтобы считать итоговые значения как шейдер.
+function bakePlugin(file) {
+  const src = fs.readFileSync(file, 'utf8')
+  const names = { 'CRT Display': presets.crt, Dither: presets.dither }
+  const block =
+    '// PRESETS-BEGIN (генерируется из shaders/presets.json, не править руками)\n' +
+    'const PRESETS: PresetTable = {\n' +
+    Object.keys(names).map((shader) => '  ' + JSON.stringify(shader) + ': [\n' +
+      names[shader].map((p) => '    { name: ' + JSON.stringify(p.name) + ', values: { ' +
+        Object.keys(p.values).map((k) => k + ': ' + literal(p.values[k])).join(', ') + ' } },').join('\n') +
+      '\n  ],').join('\n') +
+    '\n};\n' +
+    '// PRESETS-END'
+  const out = src.replace(/\/\/ PRESETS-BEGIN[\s\S]*?\/\/ PRESETS-END/, block)
+  if (out === src) console.log('без изменений: ' + file)
+  else { fs.writeFileSync(file, out); console.log('обновлён: ' + file) }
+}
+bakePlugin(path.join(root, '..', 'shader-presets', 'code.ts'))

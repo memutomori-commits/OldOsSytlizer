@@ -68,3 +68,8 @@
 
 Исходники шейдер-эффектов из библиотеки Figma и их пресеты лежат в `shaders/`,
 см. [shaders/README.md](shaders/README.md).
+
+## Shader Presets
+
+Плагин, который снимает Preset code с выделенного слоя и применяет его к другим слоям,
+лежит в `shader-presets/`, см. [shader-presets/README.md](shader-presets/README.md).
