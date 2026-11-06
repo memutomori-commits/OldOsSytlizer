@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>KD Pixelize</title>
+<script>
+  // В iframe плагина localStorage может быть недоступен: подменяем заглушкой.
+  try {
+    window.localStorage.getItem('x');
+  } catch (e) {
+    const store = new Map();
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: function (k) { return store.has(k) ? store.get(k) : null; },
+        setItem: function (k, v) { store.set(k, String(v)); },
+        removeItem: function (k) { store.delete(k); },
+        clear: function () { store.clear(); },
+        key: function (i) { return Array.from(store.keys())[i] || null; },
+        get length() { return store.size; },
+      },
+    });
+  }
+</script>
+<style>
+  /* Плагины библиотеки Figma получают в iframe стили PropsKit; панель живёт в Shadow DOM. */
+  #kp-body { margin: 0; padding: 0; background: #C0C0C0; overflow: hidden; }
+  #kp-app { display: block; width: 100%; margin: 0; padding: 0; }
+</style>
+</head>
+<body id="kp-body">
+<kd-pixelize-app id="kp-app"></kd-pixelize-app>
+<template id="kp-template">
+<style>
+  :host { display: block; }
+  .panel {
+    all: initial;
+    display: block;
+    box-sizing: border-box;
+    padding: 8px;
+    background: #C0C0C0;
+    color: #000000;
+    font-family: "MS Sans Serif", "Pixelated MS Sans Serif", Tahoma, "Segoe UI", Arial, sans-serif;
+    font-size: 11px;
+    line-height: 1.2;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+    --face: #C0C0C0;
+    --light: #FFFFFF;
+    --lighter: #DFDFDF;
+    --shade: #808080;
+    --dark: #0A0A0A;
+    --select: #000080;
+    --text: #000000;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+
+  .raised {
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--light),
+      inset -2px -2px var(--shade),
+      inset 2px 2px var(--lighter);
+  }
+  .sunken {
+    box-shadow:
+      inset -1px -1px var(--light),
+      inset 1px 1px var(--shade),
+      inset -2px -2px var(--lighter),
+      inset 2px 2px var(--dark);
+  }
+  .sunken-thin {
+    box-shadow:
+      inset -1px -1px var(--light),
+      inset 1px 1px var(--shade);
+  }
+
+  .group {
+    position: relative;
+    margin: 6px 0 10px;
+    padding: 12px 8px 8px;
+    box-shadow:
+      inset -1px -1px var(--light),
+      inset 1px 1px var(--shade),
+      inset -2px -2px var(--shade),
+      inset 2px 2px var(--light);
+  }
+  .legend {
+    position: absolute;
+    top: -6px;
+    left: 8px;
+    padding: 0 3px;
+    background: var(--face);
+  }
+  .row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .row:first-child { margin-top: 0; }
+  .label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .muted { color: var(--shade); text-shadow: 1px 1px 0 var(--light); }
+
+  .btn {
+    min-width: 75px;
+    height: 23px;
+    padding: 0 10px;
+    background: var(--face);
+    border: 0;
+    font: inherit;
+    color: inherit;
+    cursor: default;
+    white-space: nowrap;
+  }
+  .btn.small { min-width: 0; padding: 0 8px; }
+  .btn:focus { outline: none; }
+  .btn:focus-visible { outline: 1px dotted var(--text); outline-offset: -4px; }
+  .btn:not(:disabled):active, .btn.down {
+    padding: 2px 9px 0 11px;
+    box-shadow:
+      inset -1px -1px var(--light),
+      inset 1px 1px var(--dark),
+      inset -2px -2px var(--lighter),
+      inset 2px 2px var(--shade);
+  }
+  .btn:disabled { color: var(--shade); text-shadow: 1px 1px 0 var(--light); }
+
+  .preview {
+    position: relative;
+    margin-top: 6px;
+    padding: 2px;
+    background: var(--light);
+    line-height: 0;
+    min-height: 60px;
+  }
+  .preview canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  .preview .empty { line-height: 1.2; padding: 24px 8px; text-align: center; }
+  #overlay { position: absolute; left: 2px; top: 2px; pointer-events: none; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chip { min-width: 0; height: 21px; padding: 0 8px; }
+  .chip.on {
+    background: var(--select);
+    color: var(--light);
+    box-shadow:
+      inset -1px -1px var(--light),
+      inset 1px 1px var(--dark),
+      inset -2px -2px var(--lighter),
+      inset 2px 2px var(--shade);
+  }
+
+  .check { display: flex; align-items: center; gap: 5px; margin-top: 6px; }
+  .check input { margin: 0; width: 13px; height: 13px; }
+
+  .slider { display: grid; grid-template-columns: 112px 1fr 38px; align-items: center; gap: 6px; margin-top: 5px; }
+  .slider input[type=range] { width: 100%; margin: 0; height: 18px; accent-color: var(--select); }
+  .slider .val { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .status {
+    height: 21px;
+    margin-top: 2px;
+    padding: 3px 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .status.busy::after { content: '…'; }
+  .bar {
+    height: 10px;
+    margin-top: 4px;
+    background: var(--light);
+    display: none;
+  }
+  .bar.show { display: block; }
+  .bar i { display: block; height: 100%; background: var(--select); width: 0; transition: width .15s; }
+</style>
+<div class="panel" id="panel">
+  <div class="group">
+    <span class="legend">Источник</span>
+    <div class="row">
+      <span class="label" id="src-label">Выделите слой</span>
+      <button id="reload" class="btn small raised" type="button" disabled>Обновить</button>
+      <button id="file-btn" class="btn small raised" type="button">Файл…</button>
+      <input id="file" type="file" accept="image/*" hidden>
+    </div>
+    <div class="preview sunken-thin" id="preview">
+      <div class="empty muted" id="preview-empty">Выделите слой с картинкой или откройте файл</div>
+      <canvas id="canvas" hidden></canvas>
+      <canvas id="overlay" hidden></canvas>
+    </div>
+  </div>
+
+  <div class="group">
+    <span class="legend">Люди</span>
+    <div class="row">
+      <span class="label" id="people-label">Нажмите «Найти людей», затем кликните по человеку</span>
+      <button id="detect" class="btn raised" type="button" disabled>Найти людей</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <label class="check"><input id="invert" type="checkbox"> Наоборот: пикселизировать всё, кроме выбранных</label>
+    <div class="bar" id="bar"><i id="bar-fill"></i></div>
+  </div>
+
+  <div class="group">
+    <span class="legend">Пикселизация</span>
+    <div class="slider"><span>Мин. блок, px</span><input id="min" type="range" min="2" max="64" step="1" value="16"><span class="val" id="min-v">16</span></div>
+    <div class="slider"><span>Макс. блок, px</span><input id="max" type="range" min="16" max="512" step="8" value="128"><span class="val" id="max-v">128</span></div>
+    <div class="slider"><span>Порог детализации</span><input id="thr" type="range" min="2" max="80" step="1" value="32"><span class="val" id="thr-v">32</span></div>
+    <div class="slider"><span>Детали по краю</span><input id="edge" type="range" min="0" max="100" step="1" value="30"><span class="val" id="edge-v">30</span></div>
+    <div class="row">
+      <span class="label">Край силуэта</span>
+      <label class="check"><input type="radio" name="edge-mode" value="block" checked> Блоками</label>
+      <label class="check"><input type="radio" name="edge-mode" value="mask"> По маске</label>
+    </div>
+  </div>
+
+  <div class="row">
+    <label class="check"><input type="radio" name="out" value="new" checked> Новый слой рядом</label>
+    <label class="check"><input type="radio" name="out" value="replace" id="out-replace"> Заменить заливку</label>
+    <span class="label"></span>
+    <button id="apply" class="btn raised" type="button" disabled>Применить</button>
+  </div>
+  <div id="status" class="status sunken-thin" role="status" aria-live="polite">Выделите слой</div>
+</div>
+</template>
+
+<script>
+(function () {
+  'use strict';
+
+  // -------------------------------------------------------------------------
+  // KD-дерево: регион делится по длинной стороне там, где суммарная ошибка
+  // двух половин минимальна; деление идёт, пока ошибка цвета внутри блока
+  // (среднеквадратичная, по пикселям маски) выше порога или блок больше максимума.
+  // Позиции разрезов кратны минимальному блоку, поэтому блоки ложатся на сетку.
+  // -------------------------------------------------------------------------
+  const STATS = 7; // m, m*r, m*g, m*b, m*r², m*g², m*b²
+
+  function regionCost(s, o, n, lambda) {
+    const m = s[o];
+    if (m <= 0) return 0;
+    const sse = (s[o + 4] - s[o + 1] * s[o + 1] / m) + (s[o + 5] - s[o + 2] * s[o + 2] / m) + (s[o + 6] - s[o + 3] * s[o + 3] / m);
+    return sse + lambda * (m - m * m / n);
+  }
+
+  function kdPixelize(src, mask, opt) {
+    const W = src.width, H = src.height, data = src.data;
+    const minB = Math.max(1, opt.minBlock | 0);
+    const maxB = Math.max(minB, opt.maxBlock | 0);
+    const thr2 = opt.threshold * opt.threshold;
+    const lambda = opt.edgeWeight * opt.edgeWeight * 25600;
+    const leaves = [];
+    const tmp = new Float64Array(STATS);
+
+    function split(x0, y0, x1, y1) {
+      const w = x1 - x0, h = y1 - y0, n = w * h;
+      const col = new Float64Array(STATS * w);
+      const row = new Float64Array(STATS * h);
+      for (let y = y0; y < y1; y++) {
+        const ro = STATS * (y - y0);
+        let i = (y * W + x0) * 4;
+        let mi = y * W + x0;
+        for (let x = 0; x < w; x++, i += 4, mi++) {
+          const m = mask ? mask[mi] : 1;
+          if (m) {
+            const r = data[i], g = data[i + 1], b = data[i + 2];
+            const co = STATS * x;
+            col[co] += 1; col[co + 1] += r; col[co + 2] += g; col[co + 3] += b;
+            col[co + 4] += r * r; col[co + 5] += g * g; col[co + 6] += b * b;
+            row[ro] += 1; row[ro + 1] += r; row[ro + 2] += g; row[ro + 3] += b;
+            row[ro + 4] += r * r; row[ro + 5] += g * g; row[ro + 6] += b * b;
+          }
+        }
+      }
+      tmp.fill(0);
+      for (let x = 0; x < w; x++) for (let k = 0; k < STATS; k++) tmp[k] += col[STATS * x + k];
+      const m = tmp[0];
+      const cost = regionCost(tmp, 0, n, lambda);
+
+      const canX = w >= 2 * minB, canY = h >= 2 * minB;
+      const must = w > maxB || h > maxB;
+      if ((!canX && !canY) || (!must && cost <= thr2 * n)) {
+        leaves.push({ x: x0, y: y0, w: w, h: h, m: m, n: n,
+          r: m ? tmp[1] / m : 0, g: m ? tmp[2] / m : 0, b: m ? tmp[3] / m : 0 });
+        return;
+      }
+
+      // Ось разреза: та, что больше максимума; иначе длинная; иначе та, что делится.
+      let axisX;
+      if (must) axisX = (w > maxB && h > maxB) ? (canX && (w >= h || !canY)) : (w > maxB ? canX : !canY);
+      else axisX = canX && (w >= h || !canY);
+      if (axisX && !canX) axisX = false;
+      if (!axisX && !canY) axisX = true;
+
+      const stats = axisX ? col : row;
+      const len = axisX ? w : h;
+      const start = axisX ? x0 : y0;
+      const otherLen = axisX ? h : w;
+      const pre = new Float64Array(STATS);
+      const rest = new Float64Array(STATS);
+      let best = -1, bestCost = Infinity;
+      for (let p = 1; p < len; p++) {
+        for (let k = 0; k < STATS; k++) pre[k] += stats[STATS * (p - 1) + k];
+        if (p < minB || len - p < minB) continue;
+        if ((start + p) % minB !== 0) continue;
+        const left = regionCost(pre, 0, p * otherLen, lambda);
+        for (let k = 0; k < STATS; k++) rest[k] = tmp[k] - pre[k]; // правая часть = всё минус левая
+        const c = left + regionCost(rest, 0, (len - p) * otherLen, lambda);
+        if (c < bestCost) { bestCost = c; best = p; }
+      }
+      if (best < 0) {
+        // Ни одной позиции на сетке: режем пополам, выровняв по minB насколько возможно.
+        best = Math.max(minB, Math.min(len - minB, Math.round(len / 2 / minB) * minB));
+        if (best <= 0 || best >= len) {
+          leaves.push({ x: x0, y: y0, w: w, h: h, m: m, n: n,
+            r: m ? tmp[1] / m : 0, g: m ? tmp[2] / m : 0, b: m ? tmp[3] / m : 0 });
+          return;
+        }
+      }
+      if (axisX) { split(x0, y0, x0 + best, y1); split(x0 + best, y0, x1, y1); }
+      else { split(x0, y0, x1, y0 + best); split(x0, y0 + best, x1, y1); }
+    }
+
+    // Считаем только в прямоугольнике маски — за его пределами ничего не меняется.
+    let bx0 = 0, by0 = 0, bx1 = W, by1 = H;
+    if (mask) {
+      bx0 = W; by0 = H; bx1 = 0; by1 = 0;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (mask[y * W + x]) {
+        if (x < bx0) bx0 = x; if (x >= bx1) bx1 = x + 1; if (y < by0) by0 = y; if (y >= by1) by1 = y + 1;
+      }
+      if (bx1 <= bx0) return { image: src, leaves: [] };
+      // Расширяем до сетки, чтобы блоки у края силуэта совпадали с общей сеткой.
+      bx0 = Math.floor(bx0 / minB) * minB; by0 = Math.floor(by0 / minB) * minB;
+      bx1 = Math.min(W, Math.ceil(bx1 / minB) * minB); by1 = Math.min(H, Math.ceil(by1 / minB) * minB);
+    }
+    split(bx0, by0, bx1, by1);
+
+    const out = new ImageData(new Uint8ClampedArray(data), W, H);
+    const od = out.data;
+    const coverage = opt.coverage === undefined ? 0.5 : opt.coverage;
+    for (const leaf of leaves) {
+      if (leaf.m <= 0) continue;
+      const full = !mask || opt.edgeMode === 'block' && leaf.m >= coverage * leaf.n;
+      if (mask && opt.edgeMode === 'block' && !full) continue;
+      const r = Math.round(leaf.r), g = Math.round(leaf.g), b = Math.round(leaf.b);
+      for (let y = leaf.y; y < leaf.y + leaf.h; y++) {
+        let i = (y * W + leaf.x) * 4;
+        let mi = y * W + leaf.x;
+        for (let x = 0; x < leaf.w; x++, i += 4, mi++) {
+          if (!full && !mask[mi]) continue;
+          od[i] = r; od[i + 1] = g; od[i + 2] = b;
+        }
+      }
+    }
+    return { image: out, leaves: leaves };
+  }
+
+  // -------------------------------------------------------------------------
+  // Детект людей: TensorFlow.js + BodyPix (MobileNetV1), грузятся из CDN по кнопке.
+  // -------------------------------------------------------------------------
+  const TF_URL = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';
+  const BODYPIX_URL = 'https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js';
+  const DETECT_SIDE = 640; // длинная сторона картинки, которую видит модель
+  let net = null;
+
+  function loadScript(url) {
+    return new Promise(function (resolve, reject) {
+      const s = document.createElement('script');
+      s.src = url;
+      s.onload = resolve;
+      s.onerror = function () { reject(new Error('Не удалось загрузить ' + url)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  async function loadModel(onStatus) {
+    if (net) return net;
+    onStatus('Загружаю TensorFlow.js');
+    if (!window.tf) await loadScript(TF_URL);
+    if (!window.bodyPix) await loadScript(BODYPIX_URL);
+    onStatus('Загружаю модель BodyPix');
+    net = await window.bodyPix.load({ architecture: 'MobileNetV1', outputStride: 16, multiplier: 0.75, quantBytes: 2 });
+    return net;
+  }
+
+  // Связные области бинарной маски (4-связность) — запасной путь, если модель не разделила людей.
+  function components(mask, w, h, minArea) {
+    const label = new Int32Array(w * h);
+    const result = [];
+    const stack = new Int32Array(w * h);
+    let next = 1;
+    for (let start = 0; start < w * h; start++) {
+      if (!mask[start] || label[start]) continue;
+      let sp = 0, area = 0;
+      stack[sp++] = start; label[start] = next;
+      let x0 = w, y0 = h, x1 = 0, y1 = 0;
+      while (sp) {
+        const i = stack[--sp];
+        area++;
+        const x = i % w, y = (i - x) / w;
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        if (x > 0 && mask[i - 1] && !label[i - 1]) { label[i - 1] = next; stack[sp++] = i - 1; }
+        if (x < w - 1 && mask[i + 1] && !label[i + 1]) { label[i + 1] = next; stack[sp++] = i + 1; }
+        if (y > 0 && mask[i - w] && !label[i - w]) { label[i - w] = next; stack[sp++] = i - w; }
+        if (y < h - 1 && mask[i + w] && !label[i + w]) { label[i + w] = next; stack[sp++] = i + w; }
+      }
+      if (area >= minArea) {
+        const m = new Uint8Array(w * h);
+        for (let i = 0; i < w * h; i++) if (label[i] === next) m[i] = 1;
+        result.push({ data: m, area: area, box: [x0, y0, x1 + 1, y1 + 1] });
+      }
+      next++;
+    }
+    return result;
+  }
+
+  function boxOf(mask, w, h) {
+    let x0 = w, y0 = h, x1 = 0, y1 = 0, area = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y * w + x]) {
+      area++;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    return area ? { area: area, box: [x0, y0, x1 + 1, y1 + 1] } : null;
+  }
+
+  async function detectPeople(sourceCanvas, onStatus) {
+    const model = await loadModel(onStatus);
+    onStatus('Ищу людей');
+    const scale = Math.min(1, DETECT_SIDE / Math.max(sourceCanvas.width, sourceCanvas.height));
+    const dw = Math.max(1, Math.round(sourceCanvas.width * scale));
+    const dh = Math.max(1, Math.round(sourceCanvas.height * scale));
+    const small = document.createElement('canvas');
+    small.width = dw; small.height = dh;
+    small.getContext('2d').drawImage(sourceCanvas, 0, 0, dw, dh);
+
+    const people = [];
+    const multi = await model.segmentMultiPerson(small, {
+      internalResolution: 'medium', segmentationThreshold: 0.7, maxDetections: 10,
+      scoreThreshold: 0.3, nmsRadius: 20, minKeypointScore: 0.3, refineSteps: 10,
+    });
+    for (const seg of multi) {
+      const info = boxOf(seg.data, dw, dh);
+      if (info && info.area >= dw * dh * 0.002) people.push({ data: seg.data, area: info.area, box: info.box });
+    }
+    if (!people.length) {
+      const single = await model.segmentPerson(small, { internalResolution: 'medium', segmentationThreshold: 0.7 });
+      for (const c of components(single.data, dw, dh, dw * dh * 0.005)) people.push(c);
+    }
+    people.sort(function (a, b) { return a.box[0] - b.box[0]; });
+    return { people: people, w: dw, h: dh };
+  }
+
+  // Маску с разрешения детекта тянем на нужный размер через canvas со сглаживанием
+  // и порогом: край получается ровнее, чем при ближайшем соседе.
+  function scaleMask(mask, mw, mh, tw, th) {
+    if (mw === tw && mh === th) return mask;
+    const c = document.createElement('canvas');
+    c.width = mw; c.height = mh;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(mw, mh);
+    for (let i = 0; i < mw * mh; i++) { const v = mask[i] ? 255 : 0; img.data[i * 4] = v; img.data[i * 4 + 1] = v; img.data[i * 4 + 2] = v; img.data[i * 4 + 3] = 255; }
+    ctx.putImageData(img, 0, 0);
+    const t = document.createElement('canvas');
+    t.width = tw; t.height = th;
+    const tctx = t.getContext('2d');
+    tctx.imageSmoothingEnabled = true;
+    tctx.imageSmoothingQuality = 'high';
+    tctx.drawImage(c, 0, 0, tw, th);
+    const td = tctx.getImageData(0, 0, tw, th).data;
+    const out = new Uint8Array(tw * th);
+    for (let i = 0; i < tw * th; i++) out[i] = td[i * 4] >= 128 ? 1 : 0;
+    return out;
+  }
+
+  // -------------------------------------------------------------------------
+  // Панель
+  // -------------------------------------------------------------------------
+  const root = document.getElementById('kp-app').attachShadow({ mode: 'open' });
+  root.appendChild(document.getElementById('kp-template').content.cloneNode(true));
+  const $ = function (id) { return root.getElementById(id); };
+
+  const panel = $('panel');
+  const srcLabel = $('src-label'), reloadBtn = $('reload'), fileBtn = $('file-btn'), fileInput = $('file');
+  const previewEmpty = $('preview-empty'), canvas = $('canvas'), overlay = $('overlay');
+  const peopleLabel = $('people-label'), detectBtn = $('detect'), chips = $('chips'), invertEl = $('invert');
+  const bar = $('bar'), barFill = $('bar-fill');
+  const applyBtn = $('apply'), statusEl = $('status'), outReplace = $('out-replace');
+  const sliders = { min: $('min'), max: $('max'), thr: $('thr'), edge: $('edge') };
+
+  const PREVIEW_W = 360;      // ширина превью в панели
+  const PREVIEW_CALC = 560;   // длинная сторона картинки, на которой считается превью
+
+  const state = {
+    selection: null,  // { nodeId, name, width, height, canReplace }
+    source: null,     // canvas полного размера
+    sourceId: null,   // nodeId слоя-источника или null для файла
+    sourceName: '',
+    preview: null,    // { canvas, imageData, scale }
+    people: [],       // [{ data, area, box }] в разрешении детекта
+    peopleSize: null, // { w, h }
+    selected: new Set(),
+    busy: false,
+    touched: false,   // пользователь двигал размеры блоков — не подбирать их под картинку
+  };
+
+  function post(message) { parent.postMessage({ pluginMessage: message }, '*'); }
+
+  function setStatus(text, busy) {
+    statusEl.textContent = text;
+    statusEl.classList.toggle('busy', !!busy);
+  }
+
+  function setProgress(v) {
+    bar.classList.toggle('show', v !== null);
+    if (v !== null) barFill.style.width = Math.round(v * 100) + '%';
+  }
+
+  function params() {
+    return {
+      minBlock: Number(sliders.min.value),
+      maxBlock: Number(sliders.max.value),
+      threshold: Number(sliders.thr.value),
+      edgeWeight: Number(sliders.edge.value) / 100,
+      edgeMode: root.querySelector('input[name=edge-mode]:checked').value,
+      invert: invertEl.checked,
+    };
+  }
+
+  function outputMode() { return root.querySelector('input[name=out]:checked').value; }
+
+  function updateButtons() {
+    const has = !!state.source;
+    reloadBtn.disabled = !state.selection;
+    detectBtn.disabled = !has || state.busy;
+    applyBtn.disabled = !has || state.busy;
+    outReplace.disabled = !(state.selection && state.sourceId === state.selection.nodeId && state.selection.canReplace);
+    if (outReplace.disabled && outReplace.checked) root.querySelector('input[name=out][value=new]').checked = true;
+  }
+
+  // Объединённая маска выбранных людей в нужном разрешении (или null — вся картинка).
+  function buildMask(tw, th) {
+    const p = params();
+    if (!state.selected.size) return null;
+    const ps = state.peopleSize;
+    const union = new Uint8Array(ps.w * ps.h);
+    state.selected.forEach(function (idx) {
+      const d = state.people[idx].data;
+      for (let i = 0; i < union.length; i++) if (d[i]) union[i] = 1;
+    });
+    const scaled = scaleMask(union, ps.w, ps.h, tw, th);
+    if (p.invert) for (let i = 0; i < scaled.length; i++) scaled[i] = scaled[i] ? 0 : 1;
+    return scaled;
+  }
+
+  function scaledParams(scale) {
+    const p = params();
+    return Object.assign({}, p, {
+      minBlock: Math.max(1, Math.round(p.minBlock * scale)),
+      maxBlock: Math.max(1, Math.round(p.maxBlock * scale)),
+    });
+  }
+
+  let previewTimer = 0;
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(renderPreview, 120);
+  }
+
+  function renderPreview() {
+    if (!state.preview) return;
+    const pv = state.preview;
+    const mask = buildMask(pv.imageData.width, pv.imageData.height);
+    const res = kdPixelize(pv.imageData, mask, scaledParams(pv.scale));
+    pv.canvas.getContext('2d').putImageData(res.image, 0, 0);
+    drawOverlay();
+  }
+
+  function drawOverlay() {
+    const pv = state.preview;
+    if (!pv) return;
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    if (!state.people.length) return;
+    const sx = overlay.width / state.peopleSize.w, sy = overlay.height / state.peopleSize.h;
+    state.people.forEach(function (person, idx) {
+      const b = person.box;
+      const on = state.selected.has(idx);
+      const x = Math.round(b[0] * sx) + 0.5, y = Math.round(b[1] * sy) + 0.5;
+      const w = Math.round((b[2] - b[0]) * sx), h = Math.round((b[3] - b[1]) * sy);
+      ctx.lineWidth = on ? 2 : 1;
+      ctx.setLineDash(on ? [] : [4, 3]);
+      ctx.strokeStyle = on ? '#000080' : '#FFFFFF';
+      ctx.strokeRect(x, y, w, h);
+      if (!on) { ctx.strokeStyle = '#000000'; ctx.lineDashOffset = 4; ctx.strokeRect(x, y, w, h); ctx.lineDashOffset = 0; }
+      ctx.setLineDash([]);
+      const tag = String(idx + 1);
+      ctx.font = 'bold 11px Tahoma, Arial, sans-serif';
+      const tw = ctx.measureText(tag).width + 8;
+      ctx.fillStyle = on ? '#000080' : '#000000';
+      ctx.fillRect(x - 0.5, y - 0.5, tw, 14);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText(tag, x + 3.5, y + 10.5);
+    });
+  }
+
+  function renderChips() {
+    chips.textContent = '';
+    state.people.forEach(function (person, idx) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn raised chip' + (state.selected.has(idx) ? ' on' : '');
+      b.textContent = 'Человек ' + (idx + 1);
+      b.addEventListener('click', function () { togglePerson(idx); });
+      chips.appendChild(b);
+    });
+    if (state.people.length) {
+      const all = document.createElement('button');
+      all.type = 'button';
+      all.className = 'btn raised chip';
+      all.textContent = state.selected.size ? 'Снять выбор' : 'Все';
+      all.addEventListener('click', function () {
+        if (state.selected.size) state.selected.clear();
+        else state.people.forEach(function (_, i) { state.selected.add(i); });
+        renderChips(); schedulePreview();
+      });
+      chips.appendChild(all);
+    }
+  }
+
+  function togglePerson(idx) {
+    if (state.selected.has(idx)) state.selected.delete(idx); else state.selected.add(idx);
+    renderChips();
+    schedulePreview();
+    peopleLabel.textContent = state.selected.size
+      ? 'Выбрано: ' + state.selected.size + ' из ' + state.people.length
+      : 'Никто не выбран — пикселизируется вся картинка';
+  }
+
+  // Клик по превью: ищем человека, чья маска накрывает точку (самого маленького).
+  overlay.parentNode.addEventListener('click', function (event) {
+    if (!state.people.length || !state.preview) return;
+    const rect = canvas.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width * state.peopleSize.w;
+    const py = (event.clientY - rect.top) / rect.height * state.peopleSize.h;
+    const ix = Math.max(0, Math.min(state.peopleSize.w - 1, Math.floor(px)));
+    const iy = Math.max(0, Math.min(state.peopleSize.h - 1, Math.floor(py)));
+    let hit = -1, hitArea = Infinity;
+    state.people.forEach(function (person, idx) {
+      const b = person.box;
+      const inBox = ix >= b[0] && ix < b[2] && iy >= b[1] && iy < b[3];
+      if (!inBox) return;
+      const inMask = person.data[iy * state.peopleSize.w + ix];
+      const area = inMask ? person.area : person.area * 4; // попадание в маску важнее, чем в рамку
+      if (area < hitArea) { hitArea = area; hit = idx; }
+    });
+    if (hit >= 0) togglePerson(hit);
+  });
+
+  // ----- загрузка картинки ---------------------------------------------------
+  function setSource(sourceCanvas, nodeId, name) {
+    state.source = sourceCanvas;
+    state.sourceId = nodeId;
+    state.sourceName = name;
+    state.people = [];
+    state.peopleSize = null;
+    state.selected.clear();
+    chips.textContent = '';
+    peopleLabel.textContent = 'Нажмите «Найти людей», затем кликните по человеку';
+
+    const W = sourceCanvas.width, H = sourceCanvas.height;
+    if (!state.touched) {
+      // Размер блока по умолчанию зависит от картинки: ~1/75 длинной стороны, чётный.
+      const minB = Math.max(4, Math.min(64, Math.round(Math.max(W, H) / 150) * 2));
+      sliders.min.value = minB; $('min-v').textContent = String(minB);
+      const maxB = Math.max(16, Math.min(512, Math.round(minB * 8 / 8) * 8));
+      sliders.max.value = maxB; $('max-v').textContent = String(maxB);
+    }
+    const calcScale = Math.min(1, PREVIEW_CALC / Math.max(W, H));
+    const pw = Math.max(1, Math.round(W * calcScale)), ph = Math.max(1, Math.round(H * calcScale));
+    canvas.width = pw; canvas.height = ph;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(sourceCanvas, 0, 0, pw, ph);
+    state.preview = { canvas: canvas, imageData: ctx.getImageData(0, 0, pw, ph), scale: calcScale };
+
+    canvas.hidden = false;
+    overlay.hidden = false;
+    previewEmpty.hidden = true;
+    // overlay лежит поверх canvas в тех же CSS-пикселях
+    const cssW = PREVIEW_W, cssH = Math.round(PREVIEW_W * ph / pw);
+    overlay.width = cssW; overlay.height = cssH;
+    overlay.style.width = cssW + 'px'; overlay.style.height = cssH + 'px';
+
+    srcLabel.textContent = (name || 'Файл') + ' · ' + W + '×' + H;
+    setStatus('Готово к пикселизации');
+    updateButtons();
+    renderPreview();
+  }
+
+  function decodeBytes(bytes, name, nodeId) {
+    const blob = new Blob([bytes], { type: 'image/png' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      setSource(c, nodeId, name);
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); setStatus('Не удалось прочитать картинку'); updateButtons(); };
+    img.src = url;
+  }
+
+  function requestExport() {
+    if (!state.selection) return;
+    setStatus('Выгружаю слой «' + state.selection.name + '»', true);
+    post({ type: 'export', nodeId: state.selection.nodeId });
+  }
+
+  // ----- детект ----------------------------------------------------------------
+  detectBtn.addEventListener('click', async function () {
+    if (!state.source || state.busy) return;
+    state.busy = true;
+    updateButtons();
+    setProgress(0.1);
+    try {
+      const res = await detectPeople(state.source, function (text) { setStatus(text, true); setProgress(0.4); });
+      state.people = res.people;
+      state.peopleSize = { w: res.w, h: res.h };
+      state.selected.clear();
+      if (res.people.length) {
+        state.selected.add(0);
+        setStatus('Найдено людей: ' + res.people.length + '. Кликните по человеку на превью');
+        peopleLabel.textContent = 'Выбрано: 1 из ' + res.people.length;
+      } else {
+        setStatus('Людей не нашёл — пикселизируется вся картинка');
+        peopleLabel.textContent = 'Людей не найдено';
+      }
+      renderChips();
+      renderPreview();
+    } catch (error) {
+      setStatus('Ошибка: ' + (error && error.message ? error.message : error));
+    } finally {
+      setProgress(null);
+      state.busy = false;
+      updateButtons();
+    }
+  });
+
+  // ----- применение ------------------------------------------------------------
+  applyBtn.addEventListener('click', function () {
+    if (!state.source || state.busy) return;
+    state.busy = true;
+    updateButtons();
+    setStatus('Считаю блоки', true);
+    setTimeout(function () {
+      try {
+        const W = state.source.width, H = state.source.height;
+        const src = state.source.getContext('2d').getImageData(0, 0, W, H);
+        const mask = buildMask(W, H);
+        const res = kdPixelize(src, mask, params());
+        const out = document.createElement('canvas');
+        out.width = W; out.height = H;
+        out.getContext('2d').putImageData(res.image, 0, 0);
+        setStatus('Блоков: ' + res.leaves.length + '. Вставляю в Figma', true);
+        out.toBlob(function (blob) {
+          blob.arrayBuffer().then(function (buf) {
+            const sel = state.selection;
+            const sameLayer = sel && state.sourceId === sel.nodeId;
+            post({
+              type: 'apply',
+              bytes: new Uint8Array(buf),
+              nodeId: sameLayer ? sel.nodeId : null,
+              mode: sameLayer && outputMode() === 'replace' ? 'replace' : 'new',
+              width: sameLayer ? sel.width : W,
+              height: sameLayer ? sel.height : H,
+            });
+            setStatus('Готово: ' + res.leaves.length + ' блоков');
+            state.busy = false;
+            updateButtons();
+          });
+        }, 'image/png');
+      } catch (error) {
+        setStatus('Ошибка: ' + (error && error.message ? error.message : error));
+        state.busy = false;
+        updateButtons();
+      }
+    }, 30);
+  });
+
+  // ----- контролы ----------------------------------------------------------------
+  Object.keys(sliders).forEach(function (key) {
+    const el = sliders[key];
+    const val = $(key + '-v');
+    el.addEventListener('input', function () {
+      val.textContent = el.value;
+      if (key === 'min' || key === 'max') state.touched = true;
+      if (key === 'min' && Number(sliders.max.value) < Number(el.value)) { sliders.max.value = el.value; $('max-v').textContent = el.value; }
+      schedulePreview();
+    });
+  });
+  root.querySelectorAll('input[name=edge-mode]').forEach(function (el) { el.addEventListener('change', schedulePreview); });
+  invertEl.addEventListener('change', schedulePreview);
+  reloadBtn.addEventListener('click', requestExport);
+  fileBtn.addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', function () {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    file.arrayBuffer().then(function (buf) { decodeBytes(new Uint8Array(buf), file.name, null); });
+    fileInput.value = '';
+  });
+
+  // ----- сообщения из плагина ------------------------------------------------------
+  window.addEventListener('message', function (event) {
+    const msg = event.data && event.data.pluginMessage;
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.type === 'selection') {
+      state.selection = msg.nodeId ? { nodeId: msg.nodeId, name: msg.name, width: msg.width, height: msg.height, canReplace: msg.canReplace } : null;
+      if (!state.source) {
+        srcLabel.textContent = state.selection ? state.selection.name + ' · ' + msg.width + '×' + msg.height : 'Выделите слой';
+        setStatus(state.selection ? 'Выгружаю слой' : 'Выделите слой', !!state.selection);
+      }
+      updateButtons();
+      // Новый выделенный слой подхватываем сами, если ещё ничего не загружено
+      // или загружен другой слой с холста.
+      if (state.selection && (!state.source || (state.sourceId && state.sourceId !== state.selection.nodeId))) requestExport();
+    } else if (msg.type === 'image') {
+      decodeBytes(msg.bytes, msg.name, msg.nodeId);
+    } else if (msg.type === 'export-error') {
+      setStatus(msg.message);
+      updateButtons();
+    }
+  });
+
+  new ResizeObserver(function () {
+    post({ type: 'resize', height: Math.ceil(panel.getBoundingClientRect().height) });
+  }).observe(panel);
+
+  // Для теста вне Figma: window.__kd даёт доступ к ядру.
+  window.__kd = { kdPixelize: kdPixelize, detectPeople: detectPeople, state: state, setSource: setSource, root: root };
+
+  post({ type: 'ready' });
+})();
+</script>
+</body>
+</html>

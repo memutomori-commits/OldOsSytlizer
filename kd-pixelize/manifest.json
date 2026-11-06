@@ -1,0 +1,24 @@
+{
+  "name": "KD Pixelize",
+  "id": "1483759264018273647",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": [
+    "figma"
+  ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "https://cdn.jsdelivr.net",
+      "https://storage.googleapis.com"
+    ],
+    "reasoning": "Модель сегментации людей (TensorFlow.js + BodyPix) загружается из CDN при первом нажатии «Найти людей»."
+  },
+  "relaunchButtons": [
+    {
+      "command": "1483759264018273647",
+      "name": "KD Pixelize"
+    }
+  ]
+}
