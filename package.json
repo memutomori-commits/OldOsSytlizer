@@ -4,7 +4,8 @@
   "private": true,
   "description": "Плагин Figma: бевели Win95 для выделенных шейпов",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "bake-presets": "node shaders/bake-presets.js"
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.139.0",
