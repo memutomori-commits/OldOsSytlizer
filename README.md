@@ -73,3 +73,9 @@
 
 Плагин, который снимает Preset code с выделенного слоя и применяет его к другим слоям,
 лежит в `shader-presets/`, см. [shader-presets/README.md](shader-presets/README.md).
+
+## KD Pixelize
+
+Плагин пикселизации KD-деревом (адаптивные блоки по детализации) с детектом людей:
+можно выбрать человека на картинке и пикселизировать только его. Лежит в `kd-pixelize/`,
+см. [kd-pixelize/README.md](kd-pixelize/README.md).
