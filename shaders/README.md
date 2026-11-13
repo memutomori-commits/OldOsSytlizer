@@ -6,8 +6,8 @@
 
 | Шейдер      | id в библиотеке Figma                  | Файл                 |
 |-------------|----------------------------------------|----------------------|
-| Dither      | `45b27e28-4b6b-4a00-8aa0-26e7a719a33d` | `shaders/dither/main.ts` |
-| CRT Display | `f7a1faf4-6a51-4ee2-ab42-0e5b971b62d1` | `shaders/crt/main.ts`    |
+| Dither      | `1ec99a62-ff35-4e69-b133-f8c07e419d53` | `shaders/dither/main.ts` |
+| CRT Display | `40021a79-a9cf-4bbc-bf79-130d5321027c` | `shaders/crt/main.ts`    |
 
 (В библиотеке есть ещё первопартийные «Dither» и «CRT Screen» от Figma — это другие шейдеры.)
 

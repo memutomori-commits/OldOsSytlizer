@@ -40,7 +40,20 @@ Manifest при этом генерирует Figma, папочный `manifest.
 аккаунта Figma и ставятся только через MCP (`create_shader kind: effect` → `update_shader`
 с `main.ts`). Ручного импорта шейдеров в Figma нет. Подробности в `shaders/README.md`.
 
-## Старый аккаунт
+## Id в библиотеке нового аккаунта (team «memut», `team::1702940310596284805`, 2026-11-13)
 
-Id ресурсов старого аккаунта (developer@brickagency.email) перечислены в README каждой папки
-и в `shaders/README.md`; на новом аккаунте id будут другие — после создания впишите их туда.
+| Ресурс | Тип | id |
+|---|---|---|
+| Retro Bevel | plugin | `196132e8-a70f-4d80-a4d4-ec6915309cfc` |
+| Desktop Scatter | plugin | `81e68fb2-31c0-4d3a-82a6-b4e9927a3624` |
+| Window Frame | plugin | `d06c9de3-87f9-4480-bac7-43999ca6e8ae` |
+| Shader Toggle | plugin | `32c5d7a4-7bfe-4251-93d8-ec3f2a87f2b9` |
+| Shader Presets | plugin | `0f6a6cef-b906-4870-9ce7-fdb8593585cd` |
+| KD Pixelize | plugin | `e0003f01-7e25-44c6-aa93-ade864dd5aed` |
+| Dither | effect | `1ec99a62-ff35-4e69-b133-f8c07e419d53` |
+| CRT Display | effect | `40021a79-a9cf-4bbc-bf79-130d5321027c` |
+
+Ссылка «попробовать в новом файле»:
+`https://www.figma.com/file/new?try-tool-resource-content-id=<id>&try-tool-resource-type=gen_tool&type=design&mode=design`
+(для шейдеров `try-tool-resource-type=gen_effect`). Обновление кода: `update_generative_plugin` /
+`update_shader` с этими id. Старые id (аккаунт developer@brickagency.email) больше не действуют.

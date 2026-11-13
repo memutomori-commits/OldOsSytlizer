@@ -15,7 +15,8 @@
 в какой шейдер писать. Та же строка работает и в поле Preset code самого шейдера, тег он
 просто пропускает.
 
-В библиотеке аккаунта Figma плагин уже есть: id `a4b6455f-8cab-4b11-a992-1fc9b9ac6f06`.
+В библиотеке аккаунта memut (с 2026-11-13) плагин под id `0f6a6cef-b906-4870-9ce7-fdb8593585cd`
+(на старом аккаунте был `a4b6455f-8cab-4b11-a992-1fc9b9ac6f06`).
 Обновить его из этого репозитория можно через Figma MCP `update_generative_plugin`
 (файлы `code.ts` и `ui.html`), как описано для Retro Bevel в `docs/mcp-install-prompt.md`.
 Для ручной установки: `npx tsc -p shader-presets/tsconfig.json`, затем Plugins →

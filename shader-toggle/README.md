@@ -16,6 +16,7 @@ SHADER-эффекты, а также шейдерные заливки) на т�
 - **Вручную в Figma Desktop**: Plugins → Development → Import plugin from manifest… → `shader-toggle/manifest.json`.
   С 2026-11-13 `ui.html` написан на обычном HTML (панель Win95 в Shadow DOM, как у Retro Bevel), так что ручной импорт работает.
 - **Через Figma MCP** как generative plugin: передать `code.ts` и `ui.html` без изменений (manifest генерирует Figma).
-  В старом аккаунте плагин был под id `8af98895-f45a-4267-a00e-32775a8f65ac`.
+  В библиотеке аккаунта memut (с 2026-11-13) плагин под id `32c5d7a4-7bfe-4251-93d8-ec3f2a87f2b9`
+  (на старом аккаунте был `8af98895-f45a-4267-a00e-32775a8f65ac`).
 
 Сборка: `npx tsc -p shader-toggle/tsconfig.json` (или `npm run build` в корне).
