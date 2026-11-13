@@ -1,0 +1,22 @@
+{
+  "name": "Window Frame",
+  "id": "1483759264018273647",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": [
+    "figma"
+  ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ]
+  },
+  "relaunchButtons": [
+    {
+      "command": "1483759264018273647",
+      "name": "Window Frame"
+    }
+  ]
+}

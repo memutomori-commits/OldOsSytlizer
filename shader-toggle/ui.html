@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Shader Toggle</title>
+<style>
+  /* Обычный HTML без PropsKit, чтобы плагин работал при ручном импорте из манифеста. */
+  html, body { margin: 0; padding: 0; background: #C0C0C0; overflow: hidden; }
+  #st-app { display: block; }
+</style>
+</head>
+<body>
+<div id="st-app"></div>
+<template id="st-template">
+<style>
+  :host { display: block; }
+  .panel {
+    all: initial; display: block; box-sizing: border-box; padding: 10px; background: #C0C0C0; color: #000;
+    font-family: "MS Sans Serif", "Pixelated MS Sans Serif", Tahoma, "Segoe UI", Arial, sans-serif; font-size: 11px; line-height: 1.2;
+    cursor: default; user-select: none; -webkit-user-select: none;
+    --light: #FFF; --lighter: #DFDFDF; --shade: #808080; --dark: #0A0A0A;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .check { display: inline-flex; align-items: center; gap: 5px; }
+  .check input { margin: 0; width: 13px; height: 13px; }
+  .status {
+    background: var(--light); padding: 5px 6px; min-height: 32px; margin-bottom: 8px; white-space: normal;
+    box-shadow: inset -1px -1px var(--light), inset 1px 1px var(--shade), inset -2px -2px var(--lighter), inset 2px 2px var(--dark);
+  }
+  .buttons { display: flex; gap: 6px; }
+  button {
+    flex: 1; height: 23px; padding: 0 8px; border: 0; background: #C0C0C0; color: #000; font: inherit; cursor: default;
+    box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--light), inset -2px -2px var(--shade), inset 2px 2px var(--lighter);
+  }
+  button:active:not(:disabled) { box-shadow: inset 1px 1px var(--dark), inset -1px -1px var(--light), inset 2px 2px var(--shade), inset -2px -2px var(--lighter); }
+  button:disabled { color: var(--shade); text-shadow: 1px 1px 0 var(--light); }
+  button.primary { flex: 2; font-weight: bold; }
+</style>
+<div class="panel" id="root">
+  <div class="row">
+    <span>Где:</span>
+    <label class="check"><input type="radio" name="scope" value="page" checked> Страница</label>
+    <label class="check"><input type="radio" name="scope" value="selection"> Выделение</label>
+  </div>
+  <div class="status" id="status">Считаю шейдеры…</div>
+  <div class="buttons">
+    <button id="off" type="button">Выкл</button>
+    <button id="on" type="button">Вкл</button>
+    <button id="toggle" type="button" class="primary">Переключить шейдеры</button>
+  </div>
+</div>
+</template>
+<script>
+  const shadow = document.getElementById('st-app').attachShadow({ mode: 'open' });
+  shadow.appendChild(document.getElementById('st-template').content.cloneNode(true));
+  const $ = (id) => shadow.getElementById(id);
+  function post(message) { parent.postMessage({ pluginMessage: message }, '*'); }
+
+  let lastHeight = 0;
+  function reportHeight() {
+    const h = Math.ceil($('root').getBoundingClientRect().height);
+    if (h && h !== lastHeight) { lastHeight = h; post({ type: 'resize', height: h }); }
+  }
+  new ResizeObserver(reportHeight).observe($('root'));
+
+  function scope() {
+    const checked = shadow.querySelector('input[name=scope]:checked');
+    return checked && checked.value === 'selection' ? 'selection' : 'page';
+  }
+  for (const r of shadow.querySelectorAll('input[name=scope]')) {
+    r.addEventListener('change', () => post({ type: 'count', scope: scope() }));
+  }
+  const statusEl = $('status'), toggleBtn = $('toggle'), onBtn = $('on'), offBtn = $('off');
+  toggleBtn.addEventListener('click', () => post({ type: 'toggle', scope: scope(), force: 'auto' }));
+  onBtn.addEventListener('click', () => post({ type: 'toggle', scope: scope(), force: 'on' }));
+  offBtn.addEventListener('click', () => post({ type: 'toggle', scope: scope(), force: 'off' }));
+
+  window.addEventListener('message', (event) => {
+    const msg = event.data && event.data.pluginMessage;
+    if (!msg || msg.type !== 'state') return;
+    const s = msg.state;
+    const where = msg.scope === 'selection' ? 'В выделении (' + s.selection + ' сл.)' : 'На странице';
+    let text = where + ': шейдеров ' + s.total + ', включено ' + s.on;
+    if (s.styled > 0) text += '; ' + s.styled + ' в Effect Style — не трогаю';
+    if (msg.note) text += '. ' + msg.note;
+    statusEl.textContent = text;
+    const none = s.total === 0;
+    toggleBtn.textContent = none ? 'Шейдеров нет' : (s.on > 0 ? 'Выключить (' + s.on + ')' : 'Включить (' + s.total + ')');
+    toggleBtn.disabled = none; onBtn.disabled = none; offBtn.disabled = none;
+  });
+  post({ type: 'count', scope: scope() });
+</script>
+</body>
+</html>

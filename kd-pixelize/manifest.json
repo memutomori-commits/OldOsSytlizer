@@ -1,6 +1,6 @@
 {
   "name": "KD Pixelize",
-  "id": "1483759264018273647",
+  "id": "1483759264018273649",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
@@ -17,7 +17,7 @@
   },
   "relaunchButtons": [
     {
-      "command": "1483759264018273647",
+      "command": "1483759264018273649",
       "name": "KD Pixelize"
     }
   ]

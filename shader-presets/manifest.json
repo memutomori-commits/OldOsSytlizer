@@ -1,6 +1,6 @@
 {
   "name": "Shader Presets",
-  "id": "1483759264018273646",
+  "id": "1483759264018273648",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
@@ -15,7 +15,7 @@
   },
   "relaunchButtons": [
     {
-      "command": "1483759264018273646",
+      "command": "1483759264018273648",
       "name": "Shader Presets"
     }
   ]
